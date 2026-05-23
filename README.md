@@ -74,7 +74,30 @@ spriteforge-ai/
 
 ## 运行方式
 
-> 待补充（前端 `npm run dev` + 后端 `uvicorn app.main:app --reload`）
+### 前置要求
+
+- Node.js 18+
+- npm 9+
+
+### 前端启动
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+浏览器访问 `http://localhost:5173`。
+
+### 后端启动
+
+```bash
+cd backend
+pip install -r requirements.txt
+uvicorn app.main:app --reload
+```
+
+后端 API 文档访问 `http://localhost:8000/docs`。
 
 ## 第三方依赖说明
 
@@ -82,8 +105,10 @@ spriteforge-ai/
 
 | 依赖 | 版本 | 用途 | 许可证 |
 |------|------|------|--------|
-| React | 待定 | 前端框架 | MIT |
-| Vite | 待定 | 构建工具 | MIT |
+| React 18 | ^18.3 | 前端框架 | MIT |
+| Vite | ^5.3 | 构建工具 | MIT |
+| React Router | ^6.23 | 前端路由 | MIT |
+| Tailwind CSS | ^3.4 | 样式框架 | MIT |
 | FastAPI | 待定 | 后端框架 | MIT |
 | Pillow | 待定 | 图像处理 | HPND |
 | OpenCV | 待定 | Tile 边缘检测 | Apache 2.0 |
