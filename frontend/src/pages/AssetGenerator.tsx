@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import type { AssetType, ArtStyle, PixelSize, EngineType, GenerateParams } from '../types';
+import { generateAssets, getTask } from '../services/api';
 import { DEMO_MODE } from '../config/demo';
 
 // --- option definitions ---------------------------------------------------
@@ -39,9 +40,20 @@ export default function AssetGenerator() {
   const [targetEngine, setTargetEngine] = useState<EngineType>('unity');
   const [transparentBg, setTransparentBg] = useState(true);
 
-  const [submittedParams, setSubmittedParams] = useState<GenerateParams | null>(null);
+  // result state
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [taskId, setTaskId] = useState('');
+  const [generatedAssets, setGeneratedAssets] = useState<{
+    id: string; name: string; type: string; width: number; height: number; image_url: string;
+  }[]>([]);
 
-  const handleGenerate = () => {
+  const handleGenerate = useCallback(async () => {
+    setError('');
+    setLoading(true);
+    setTaskId('');
+    setGeneratedAssets([]);
+
     const params: GenerateParams = {
       projectName: projectName.trim(),
       assetType,
@@ -52,8 +64,23 @@ export default function AssetGenerator() {
       targetEngine,
       transparentBackground: transparentBg,
     };
-    console.log('[SpriteForge] Generate params:', params);
-    setSubmittedParams(params);
+
+    try {
+      const resp = await generateAssets(params);
+      setTaskId(resp.task_id);
+
+      if (resp.status === 'ready') {
+        const task = await getTask(resp.task_id);
+        setGeneratedAssets(task.assets || []);
+      }
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : '生成失败，请检查后端是否启动');
+    }
+    setLoading(false);
+  }, [projectName, assetType, prompt, style, size, count, targetEngine, transparentBg]);
+
+  const handleCopyTaskId = () => {
+    navigator.clipboard.writeText(taskId);
   };
 
   const isFormValid = projectName.trim().length > 0 && prompt.trim().length > 0;
@@ -65,7 +92,7 @@ export default function AssetGenerator() {
         {DEMO_MODE && (
           <span className="text-xs bg-amber-900/60 text-amber-300 border border-amber-700
                            px-2.5 py-1 rounded-full">
-            参数将打印到控制台
+            DEMO
           </span>
         )}
       </div>
@@ -246,55 +273,77 @@ export default function AssetGenerator() {
         {/* submit */}
         <button
           className="btn-primary w-full py-3 text-base"
-          disabled={!isFormValid}
+          disabled={!isFormValid || loading}
           onClick={handleGenerate}
         >
-          ✨ 生成素材
+          {loading ? '生成中...' : '生成素材'}
         </button>
       </section>
 
-      {/* ---- JSON preview ---- */}
-      {submittedParams && (
-        <section className="card space-y-3 animate-in fade-in">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">
-              提交参数预览
-            </h3>
+      {/* ---- error ---- */}
+      {error && (
+        <div className="bg-red-900/30 border border-red-800 rounded-lg p-4 text-sm text-red-300">
+          {error}
+        </div>
+      )}
+
+      {/* ---- result ---- */}
+      {taskId && (
+        <section className="card space-y-4">
+          <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">
+            生成结果
+          </h3>
+
+          {/* task ID */}
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-500">Task ID:</span>
+            <code className="text-xs text-brand-300 bg-gray-900 px-2 py-1 rounded font-mono select-all">
+              {taskId}
+            </code>
             <button
               className="text-xs text-gray-500 hover:text-gray-300 transition-colors"
-              onClick={() => {
-                navigator.clipboard.writeText(JSON.stringify(submittedParams, null, 2));
-              }}
+              onClick={handleCopyTaskId}
             >
-              复制 JSON
+              复制
             </button>
           </div>
-
-          <pre className="bg-gray-950 border border-gray-800 rounded-lg p-4
-                          text-xs text-green-400/90 font-mono leading-relaxed
-                          overflow-x-auto max-h-64 overflow-y-auto">
-{JSON.stringify(submittedParams, null, 2)}
-          </pre>
-
           <p className="text-xs text-gray-600">
-            ↑ 以上参数将在后续 PR 中发送至后端 API。当前 DEMO 模式下仅打印到控制台。
+            将此 Task ID 粘贴至 Sprite Sheet 工具、Tile 预览或导出页面，以加载已生成的素材。
           </p>
+
+          {/* asset thumbnails */}
+          {generatedAssets.length > 0 && (
+            <div>
+              <p className="text-xs text-gray-500 mb-2">{generatedAssets.length} 个素材：</p>
+              <div className="flex gap-3 flex-wrap">
+                {generatedAssets.map((a) => (
+                  <div key={a.id} className="flex flex-col items-center gap-1">
+                    <div className="w-16 h-16 border border-gray-700 rounded bg-[url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAHklEQVQYV2Nk+M9ABYy44v///zMwMDAwMDAwMDAwsDAwAADoFgYF3Y5O+AAAAABJRU5ErkJggg==')] overflow-hidden flex items-center justify-center">
+                      <img
+                        src={a.image_url}
+                        alt={a.name}
+                        className="max-w-full max-h-full pixelated"
+                        style={{ imageRendering: 'pixelated' }}
+                      />
+                    </div>
+                    <span className="text-[10px] text-gray-500 font-mono">{a.type}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </section>
       )}
 
-      {/* ---- empty state ---- */}
-      {!submittedParams && (
-        <section className="card">
-          <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">
-            提交参数预览
-          </h3>
-          <div className="border-2 border-dashed border-gray-800 rounded-lg p-10 text-center">
-            <p className="text-gray-600">填写表单并点击「生成素材」后，</p>
-            <p className="text-gray-600">此处将显示序列化的请求参数 JSON</p>
-            <p className="text-xs text-gray-700 mt-2">
-              {DEMO_MODE ? 'DEMO 模式：参数同时打印到浏览器控制台' : ''}
-            </p>
-          </div>
+      {/* empty state */}
+      {!taskId && !loading && !error && (
+        <section className="card text-center py-12">
+          <p className="text-gray-600">填写表单并点击「生成素材」，即可调用后端 API 生成素材</p>
+          <p className="text-xs text-gray-700 mt-1">
+            {DEMO_MODE
+              ? 'DEMO 模式：使用内置样例素材，即刻返回结果'
+              : '将调用外部 AI 服务生成素材'}
+          </p>
         </section>
       )}
     </div>

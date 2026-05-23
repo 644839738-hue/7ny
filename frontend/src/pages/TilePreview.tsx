@@ -108,7 +108,7 @@ export default function TilePreview() {
           步骤 1 — 加载 Tile 素材
         </h3>
         <p className="text-xs text-gray-500">
-          先在「素材生成」页面生成 tile 类型的素材，然后在此输入 task ID 加载。
+          先在「素材生成」页面生成 tile 类型的素材并复制 task ID，然后在此粘贴加载。
         </p>
         <div className="flex gap-2">
           <input

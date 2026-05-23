@@ -44,5 +44,6 @@ backend/uploads/
 # Testing
 coverage/
 .coverage
+.pytest_cache/
 pytest_cache/
 .tox/

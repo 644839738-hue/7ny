@@ -83,7 +83,7 @@ export default function SpriteSheetTool() {
           步骤 1 — 加载素材
         </h3>
         <p className="text-xs text-gray-500">
-          先在「素材生成」页面生成素材，然后在此输入 task ID 加载素材列表。
+          先在「素材生成」页面生成素材并复制 task ID，然后在此粘贴加载素材列表。
         </p>
         <div className="flex gap-2">
           <input

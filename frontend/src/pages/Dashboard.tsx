@@ -1,8 +1,9 @@
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { DEMO_MODE } from '../config/demo';
 
 const QUICK_LINKS = [
-  { to: '/generator',   label: '素材生成',  desc: '通过文本或参数生成 2D 游戏素材',       icon: '✨' },
+  { to: '/generator',   label: '素材生成',  desc: '通过文本描述和参数生成 2D 游戏素材',       icon: '🎨' },
   { to: '/spritesheet', label: 'Sprite Sheet', desc: '拼接多帧素材并生成 JSON 元数据',    icon: '🎞️' },
   { to: '/tile',        label: 'Tile 预览',   desc: '3×3 平铺预览与边缘一致性评分',      icon: '🧱' },
   { to: '/export',      label: '导出素材包',   desc: '导出 Unity / Godot 可用 ZIP 包',     icon: '📦' },
@@ -17,6 +18,18 @@ const PIPELINE_STEPS = [
 ];
 
 export default function Dashboard() {
+  const [backendStatus, setBackendStatus] = useState<'checking' | 'connected' | 'offline'>('checking');
+
+  useEffect(() => {
+    fetch('http://localhost:8000/health')
+      .then((r) => {
+        if (r.ok) return r.json();
+        throw new Error('Offline');
+      })
+      .then(() => setBackendStatus('connected'))
+      .catch(() => setBackendStatus('offline'));
+  }, []);
+
   return (
     <div className="max-w-4xl mx-auto space-y-10">
       {/* Hero */}
@@ -89,7 +102,15 @@ export default function Dashboard() {
         <div className="grid grid-cols-3 gap-4 text-sm">
           <StatusItem label="运行模式" value={DEMO_MODE ? 'DEMO' : 'AI'} color="amber" />
           <StatusItem label="前端版本" value="v0.0.1" color="gray" />
-          <StatusItem label="后端状态" value="待连接" color="gray" />
+          <StatusItem
+            label="后端状态"
+            value={
+              backendStatus === 'checking' ? '检查中...'
+                : backendStatus === 'connected' ? '已连接'
+                : '未连接'
+            }
+            color={backendStatus === 'connected' ? 'green' : backendStatus === 'checking' ? 'gray' : 'red'}
+          />
         </div>
       </section>
     </div>
@@ -101,6 +122,7 @@ function StatusItem({ label, value, color }: { label: string; value: string; col
     amber: 'bg-amber-400',
     green: 'bg-green-400',
     gray: 'bg-gray-500',
+    red: 'bg-red-400',
   };
   return (
     <div className="flex items-center gap-2">

@@ -175,7 +175,7 @@ spriteforge-ai/
 │   │   ├── main.py                   # 应用入口 + 路由注册
 │   │   ├── config.py                 # 环境变量配置
 │   │   ├── routers/
-│   │   │   ├── health.py             # GET /api/health
+│   │   │   ├── health.py             # GET /health
 │   │   │   ├── generate.py           # POST /api/generate
 │   │   │   ├── process.py            # POST /api/process
 │   │   │   ├── spritesheet.py        # POST /api/spritesheet
@@ -249,7 +249,7 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 后端启动后：
 - API 服务：`http://localhost:8000`
 - Swagger 文档：`http://localhost:8000/docs`
-- 健康检查：`http://localhost:8000/api/health`
+- 健康检查：`http://localhost:8000/health`
 
 ### 3) 启动前端
 
@@ -434,7 +434,7 @@ $env:SPRITEFORGE_DEMO_MODE = "true"
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
-| `GET` | `/api/health` | 健康检查 |
+| `GET` | `/health` | 健康检查 |
 | `POST` | `/api/generate` | 创建素材生成任务 |
 | `GET` | `/api/tasks/{task_id}` | 查询任务状态与结果 |
 | `POST` | `/api/process` | 素材后处理（透明/裁剪/标准化） |

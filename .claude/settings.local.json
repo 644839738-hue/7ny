@@ -15,7 +15,10 @@
       "Bash(./.venv/Scripts/python *)",
       "Bash(curl -s -o /dev/null -w \"%{http_code} %{content_type}\" http://localhost:8000/output/ae9cf592-593c-45f6-8216-0151c700e51b.png)",
       "Bash(./.venv/Scripts/pip install *)",
-      "Bash(python -m pytest tests/ -v)"
+      "Bash(python -m pytest tests/ -v)",
+      "Bash(python *)",
+      "Bash(curl -s http://localhost:8000/api/health)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5173)"
     ]
   }
 }
