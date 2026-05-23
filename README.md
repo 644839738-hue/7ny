@@ -205,9 +205,16 @@ spriteforge-ai/
 ├── docs/
 │   ├── prd.md                        # 产品需求文档
 │   ├── architecture.md               # 架构设计文档
-│   └── api.md                        # API 接口文档
+│   ├── api.md                        # API 接口文档
+│   └── demo-script.md                # Demo 视频讲解脚本
 ├── examples/
-│   └── sample-assets/                # Demo 模式内置样例素材（8 张 PNG）
+│   ├── sample-assets/                # Demo 模式内置样例素材（8 张 PNG）
+│   └── sample-export/                # 示例导出包结构（Dark Dungeon）
+│       ├── images/
+│       ├── spritesheets/
+│       ├── tiles/
+│       ├── manifest.json
+│       └── README_IMPORT.md
 └── README.md
 ```
 
@@ -443,15 +450,45 @@ $env:SPRITEFORGE_DEMO_MODE = "true"
 
 ## 14. Demo 视频链接
 
-> **占位** — 待录制后补充
+> **待录制** — 视频链接占位
 
-视频将演示以下完整流程：
-1. 启动项目（后端 + 前端）
-2. Demo 模式下生成四类素材
-3. 后处理：透明背景、裁剪、标准化
-4. Sprite Sheet 拼接和动画预览
-5. Tile 3×3 平铺预览和边缘评分
-6. 导出 Unity / Godot ZIP 包
+### 视频脚本
+
+完整的讲解脚本见 **[docs/demo-script.md](docs/demo-script.md)**。
+
+主题：**Dark Dungeon Pixel RPG** — 一个像素风地牢 Roguelike 游戏的素材生成案例。
+
+脚本覆盖流程（预计 3-4 分钟）：
+1. 项目介绍（30s）
+2. 创建项目 "Dark Dungeon" + 设定 Godot 引擎（25s）
+3. 生成四类素材：骑士角色、地牢地砖、血药道具、血条 UI（50s）
+4. 后处理管线：透明背景、裁剪、标准化、居中（30s）
+5. Sprite Sheet 拼接 + CSS 动画预览（35s）
+6. Tile 3×3 平铺预览 + 边缘一致性评分（40s）
+7. 导出 Godot ZIP 包 + 结构展示（30s）
+8. 总结（15s）
+
+### 示例导出结构
+
+`examples/sample-export/` 目录展示了一个完整的 "Dark Dungeon" 导出包结构：
+
+```
+examples/sample-export/
+├── images/
+│   └── README.txt         ← 素材文件说明
+├── spritesheets/
+│   └── README.txt         ← Sprite Sheet 说明
+├── tiles/
+│   └── README.txt         ← Tile 预览说明
+├── manifest.json          ← 素材清单（4 个素材 + spritesheet + tile）
+└── README_IMPORT.md       ← Godot 导入说明
+```
+
+### 录制建议
+
+- 浏览器窗口 1920×1080，缩放 100%
+- 如条件允许，在终端同步展示 `tree output/` 和 `pytest tests/ -v`
+- 后期加入字幕标注关键操作
 
 ---
 

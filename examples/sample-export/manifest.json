@@ -1,0 +1,46 @@
+{
+  "project_name": "Dark Dungeon",
+  "target_engine": "godot",
+  "exported_at": "2026-05-23T15:30:00Z",
+  "assets": [
+    {
+      "id": "a1b2c3d4-0001",
+      "name": "character_32x32_1",
+      "type": "character",
+      "size": [32, 32],
+      "file_path": "images/knight_001.png",
+      "prompt": "dark dungeon knight with sword, pixel art"
+    },
+    {
+      "id": "a1b2c3d4-0002",
+      "name": "tile_32x32_1",
+      "type": "tile",
+      "size": [32, 32],
+      "file_path": "images/dungeon_floor_001.png",
+      "prompt": "dark stone dungeon floor tile, seamless"
+    },
+    {
+      "id": "a1b2c3d4-0003",
+      "name": "item_32x32_1",
+      "type": "item",
+      "size": [32, 32],
+      "file_path": "images/potion_001.png",
+      "prompt": "glowing health potion, pixel art"
+    },
+    {
+      "id": "a1b2c3d4-0004",
+      "name": "ui_32x32_1",
+      "type": "ui",
+      "size": [32, 32],
+      "file_path": "images/healthbar_border_001.png",
+      "prompt": "dark fantasy health bar border"
+    }
+  ],
+  "spritesheets": [
+    "spritesheets/spritesheet_knight_walk.png",
+    "spritesheets/spritesheet_knight_walk.json"
+  ],
+  "tiles": [
+    "tiles/tile_preview_dungeon_floor.png"
+  ]
+}
