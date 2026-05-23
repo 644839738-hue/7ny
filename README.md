@@ -109,7 +109,9 @@ uvicorn app.main:app --reload
 | Vite | ^5.3 | 构建工具 | MIT |
 | React Router | ^6.23 | 前端路由 | MIT |
 | Tailwind CSS | ^3.4 | 样式框架 | MIT |
-| FastAPI | 待定 | 后端框架 | MIT |
+| FastAPI | ^0.111 | 后端 REST 框架 | MIT |
+| Uvicorn | ^0.30 | ASGI 服务器 | BSD |
+| Pydantic | ^2.7 | 数据校验与序列化 | MIT |
 | Pillow | 待定 | 图像处理 | HPND |
 | OpenCV | 待定 | Tile 边缘检测 | Apache 2.0 |
 
