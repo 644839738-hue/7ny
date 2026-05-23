@@ -53,6 +53,14 @@ class HealthResponse(BaseModel):
     demo_mode: bool
 
 
+class RuntimeConfigResponse(BaseModel):
+    """Backend runtime generation mode — read-only, for frontend display."""
+    demo_mode: bool
+    image_provider: str
+    ai_enabled: bool
+    provider_label: str
+
+
 # ---------------------------------------------------------------------------
 # Common models (placeholder — will be enriched in later PRs)
 # ---------------------------------------------------------------------------

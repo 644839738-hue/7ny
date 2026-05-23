@@ -1,4 +1,4 @@
-import type { ExportRequest, ExportResult, GenerateParams, SpriteSheet, SpriteSheetRequest, TilePreview, TilePreviewRequest, TileScore, TileScoreRequest } from '../types';
+import type { ExportRequest, ExportResult, GenerateParams, RuntimeConfig, SpriteSheet, SpriteSheetRequest, TilePreview, TilePreviewRequest, TileScore, TileScoreRequest } from '../types';
 import { API_BASE } from '../config/demo';
 
 async function request<T>(url: string, options?: RequestInit): Promise<T> {
@@ -82,6 +82,11 @@ export function buildTilePreview(params: TilePreviewRequest) {
       asset_id: params.assetId,
     }),
   });
+}
+
+/** Fetch backend runtime generation config. */
+export function getRuntimeConfig() {
+  return request<RuntimeConfig>('/runtime-config');
 }
 
 /** Export assets as a ZIP package for a target engine. */

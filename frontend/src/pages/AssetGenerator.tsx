@@ -1,7 +1,6 @@
-import { useCallback, useState } from 'react';
-import type { AssetType, ArtStyle, PixelSize, EngineType, GenerateParams } from '../types';
-import { generateAssets, getTask } from '../services/api';
-import { DEMO_MODE } from '../config/demo';
+import { useCallback, useEffect, useState } from 'react';
+import type { AssetType, ArtStyle, EngineType, GenerateParams, PixelSize, RuntimeConfig } from '../types';
+import { generateAssets, getRuntimeConfig, getTask } from '../services/api';
 
 // --- option definitions ---------------------------------------------------
 
@@ -40,6 +39,9 @@ export default function AssetGenerator() {
   const [targetEngine, setTargetEngine] = useState<EngineType>('unity');
   const [transparentBg, setTransparentBg] = useState(true);
 
+  // runtime config from backend
+  const [runtimeConfig, setRuntimeConfig] = useState<RuntimeConfig | null>(null);
+
   // result state
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -47,6 +49,12 @@ export default function AssetGenerator() {
   const [generatedAssets, setGeneratedAssets] = useState<{
     id: string; name: string; type: string; width: number; height: number; image_url: string;
   }[]>([]);
+
+  useEffect(() => {
+    getRuntimeConfig()
+      .then(setRuntimeConfig)
+      .catch(() => setRuntimeConfig(null));
+  }, []);
 
   const handleGenerate = useCallback(async () => {
     setError('');
@@ -89,10 +97,13 @@ export default function AssetGenerator() {
     <div className="max-w-3xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold">素材生成</h2>
-        {DEMO_MODE && (
-          <span className="text-xs bg-amber-900/60 text-amber-300 border border-amber-700
-                           px-2.5 py-1 rounded-full">
-            DEMO
+        {runtimeConfig && (
+          <span className={`text-xs px-2.5 py-1 rounded-full border ${
+            runtimeConfig.demo_mode
+              ? 'bg-amber-900/60 text-amber-300 border-amber-700'
+              : 'bg-emerald-900/60 text-emerald-300 border-emerald-700'
+          }`}>
+            {runtimeConfig.provider_label}
           </span>
         )}
       </div>
@@ -340,9 +351,9 @@ export default function AssetGenerator() {
         <section className="card text-center py-12">
           <p className="text-gray-600">填写表单并点击「生成素材」，即可调用后端 API 生成素材</p>
           <p className="text-xs text-gray-700 mt-1">
-            {DEMO_MODE
-              ? 'DEMO 模式：使用内置样例素材，即刻返回结果'
-              : '将调用外部 AI 服务生成素材'}
+            {runtimeConfig
+              ? `当前后端模式：${runtimeConfig.provider_label}`
+              : '加载后端配置中...'}
           </p>
         </section>
       )}
