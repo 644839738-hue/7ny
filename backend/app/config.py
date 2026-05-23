@@ -12,6 +12,11 @@ import os
 # external AI API.  Controlled by SPRITEFORGE_DEMO_MODE env var.
 DEMO_MODE: bool = os.getenv("SPRITEFORGE_DEMO_MODE", "true").lower() != "false"
 
+# --- Image provider ---
+# "demo"     → built-in sample assets
+# "wanxiang" → Tongyi Wanxiang / DashScope text-to-image
+IMAGE_PROVIDER: str = os.getenv("IMAGE_PROVIDER", "demo")
+
 # --- External AI API ---
 # Only used when DEMO_MODE=false.  If the external API call fails, the
 # service automatically falls back to the demo provider.

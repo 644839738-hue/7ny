@@ -243,13 +243,13 @@ cd spriteforge-ai
 ```bash
 cd backend
 pip install -r requirements.txt
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+uvicorn app.main:app --reload --host 127.0.0.1 --port 8001
 ```
 
 后端启动后：
-- API 服务：`http://localhost:8000`
-- Swagger 文档：`http://localhost:8000/docs`
-- 健康检查：`http://localhost:8000/health`
+- API 服务：`http://localhost:8001`
+- Swagger 文档：`http://localhost:8001/docs`
+- 健康检查：`http://localhost:8001/health`
 
 ### 3) 启动前端
 
@@ -261,7 +261,7 @@ npm run dev
 
 前端启动后访问 `http://localhost:5173`。
 
-Vite 开发服务器已配置代理，`/api` 和 `/output` 请求自动转发到 `http://localhost:8000`。
+Vite 开发服务器已配置代理，`/api` 和 `/output` 请求自动转发到 `http://localhost:8001`。
 
 ### 4) 运行测试
 
@@ -286,8 +286,8 @@ Demo 模式是 SpriteForge AI 的核心架构特性——**无需任何外部 AI
 ```
 DEMO_MODE=true (默认)
     │
-    ├── 前端: VITE_DEMO_MODE=true
-    │   └── 页面顶部显示 "DEMO" 标记
+    ├── 前端: 页面加载时调用 GET /api/runtime-config
+    │   └── 页面顶部显示后端真实模式（Demo 内置素材 / 通义万相 AI 生成 / External）
     │
     └── 后端: SPRITEFORGE_DEMO_MODE=true
         └── DemoImageProvider 使用 examples/sample-assets/ 下内置素材
@@ -296,6 +296,8 @@ DEMO_MODE=true (默认)
             ├── tile_32.png, tile_64.png
             └── ui_32.png, ui_64.png
 ```
+
+> **重要**：生成模式完全由 `backend/.env` 控制，前端仅通过 `/api/runtime-config` 读取并显示后端当前模式，**不具备**切换模式的能力。
 
 ### 关键设计
 
@@ -325,13 +327,11 @@ DEMO_MODE=true (默认)
 | `IMAGE_API_KEY` | (空) | 仅非 Demo | 外部图像生成 API 的 Key / Token |
 | `IMAGE_API_BASE_URL` | (空) | 仅非 Demo | 外部图像生成 API 的基础 URL |
 | `SPRITEFORGE_HOST` | `0.0.0.0` | 否 | 后端绑定地址 |
-| `SPRITEFORGE_PORT` | `8000` | 否 | 后端绑定端口 |
+| `SPRITEFORGE_PORT` | `8001` | 否 | 后端绑定端口 |
 
 ### 前端环境变量
 
-| 变量 | 默认值 | 必填 | 说明 |
-|------|--------|------|------|
-| `VITE_DEMO_MODE` | `true` | 否 | `true`=UI 显示 Demo 标记；`false`=隐藏 |
+前端不再通过环境变量控制生成模式。页面加载时调用 `GET /api/runtime-config` 获取后端真实的生成模式并显示在 UI 中。保留 `VITE_DEMO_MODE` 仅供本地调试时覆盖显示（可选，一般不设置）。
 
 ### 设置方式
 
@@ -422,13 +422,13 @@ $env:SPRITEFORGE_DEMO_MODE = "true"
 
 ### Swagger UI（交互式文档）
 
-后端启动后访问：**`http://localhost:8000/docs`**
+后端启动后访问：**`http://localhost:8001/docs`**
 
 支持直接在浏览器中测试所有 API 端点。
 
 ### ReDoc（只读文档）
 
-访问：**`http://localhost:8000/redoc`**
+访问：**`http://localhost:8001/redoc`**
 
 ### 端点总览
 
@@ -443,6 +443,7 @@ $env:SPRITEFORGE_DEMO_MODE = "true"
 | `POST` | `/api/tile/score` | Tile 边缘一致性评分 |
 | `POST` | `/api/export` | ZIP 导出 |
 | `GET` | `/api/assets` | 列出已生成素材 |
+| `GET` | `/api/runtime-config` | 获取后端生成模式配置（前端读取显示） |
 
 详细请求/响应格式见 [docs/api.md](docs/api.md)。
 

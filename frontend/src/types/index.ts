@@ -128,6 +128,14 @@ export interface ApiError {
   };
 }
 
+/** Backend runtime config */
+export interface RuntimeConfig {
+  demo_mode: boolean;
+  image_provider: string;
+  ai_enabled: boolean;
+  provider_label: string;
+}
+
 /** Navigation tabs */
 export type NavTab =
   | 'dashboard'
