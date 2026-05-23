@@ -48,12 +48,27 @@ export interface SpriteFrame {
   height: number;
 }
 
+/** Sprite sheet request */
+export interface SpriteSheetRequest {
+  assetIds: string[];
+  animationName: string;
+  frameWidth: number;
+  frameHeight: number;
+  fps: number;
+  columns: number;
+}
+
 /** Sprite sheet result */
 export interface SpriteSheet {
   spritesheetUrl: string;
   spritesheetSize: [number, number];
   frames: SpriteFrame[];
   metadataUrl: string;
+  animationName: string;
+  frameWidth: number;
+  frameHeight: number;
+  frameCount: number;
+  fps: number;
 }
 
 /** Tile edge consistency score */
