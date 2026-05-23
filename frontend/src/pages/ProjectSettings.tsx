@@ -60,7 +60,7 @@ export default function ProjectSettings() {
             </label>
             <select className="input-field" defaultValue="character">
               <option value="character">角色 (Character)</option>
-              <option value="prop">道具 (Prop)</option>
+              <option value="item">道具 (Item)</option>
               <option value="tile">Tile</option>
               <option value="ui">UI</option>
             </select>

@@ -1,19 +1,25 @@
 /** Asset category */
-export type AssetType = 'character' | 'prop' | 'tile' | 'ui';
+export type AssetType = 'character' | 'item' | 'tile' | 'ui';
+
+/** Visual style presets */
+export type ArtStyle = 'pixel_art' | 'cartoon' | 'dark_fantasy';
 
 /** Pixel size presets */
-export type PixelSize = 32 | 64;
+export type PixelSize = 32 | 64 | 128;
 
 /** Target game engine for export */
-export type EngineType = 'unity' | 'godot';
+export type EngineType = 'unity' | 'godot' | 'generic';
 
 /** Generation request parameters */
 export interface GenerateParams {
-  prompt: string;
+  projectName: string;
   assetType: AssetType;
+  prompt: string;
+  style: ArtStyle;
   size: PixelSize;
-  style: string;
   count: number;
+  targetEngine: EngineType;
+  transparentBackground: boolean;
 }
 
 /** A single generated asset */

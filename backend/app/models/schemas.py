@@ -20,7 +20,7 @@ from pydantic import BaseModel, Field
 
 class AssetType(str, Enum):
     CHARACTER = "character"
-    PROP = "prop"
+    ITEM = "item"
     TILE = "tile"
     UI = "ui"
 
@@ -28,11 +28,19 @@ class AssetType(str, Enum):
 class PixelSize(int, Enum):
     S32 = 32
     S64 = 64
+    S128 = 128
+
+
+class ArtStyle(str, Enum):
+    PIXEL_ART = "pixel_art"
+    CARTOON = "cartoon"
+    DARK_FANTASY = "dark_fantasy"
 
 
 class EngineType(str, Enum):
     UNITY = "unity"
     GODOT = "godot"
+    GENERIC = "generic"
 
 
 # ---------------------------------------------------------------------------
@@ -76,3 +84,18 @@ class ErrorDetail(BaseModel):
 
 class ErrorResponse(BaseModel):
     error: ErrorDetail
+
+
+# ---------------------------------------------------------------------------
+# Generate
+# ---------------------------------------------------------------------------
+
+class GenerateRequest(BaseModel):
+    project_name: str = Field(min_length=1, max_length=100)
+    asset_type: AssetType
+    prompt: str = Field(min_length=1, max_length=500)
+    style: ArtStyle = ArtStyle.PIXEL_ART
+    size: PixelSize = PixelSize.S32
+    count: int = Field(default=4, ge=1, le=16)
+    target_engine: EngineType = EngineType.UNITY
+    transparent_background: bool = True
