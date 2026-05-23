@@ -83,6 +83,11 @@ export interface TilePreview {
   previewSize: [number, number];
 }
 
+/** Tile score request */
+export interface TileScoreRequest {
+  assetId: string;
+}
+
 /** Tile edge consistency score */
 export interface TileScore {
   score: number;
@@ -91,6 +96,7 @@ export interface TileScore {
     leftRightConsistency: number;
   };
   overallRating: 'excellent' | 'good' | 'fair' | 'poor';
+  suggestion: string;
 }
 
 /** Export result */

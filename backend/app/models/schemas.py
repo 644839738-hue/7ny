@@ -204,3 +204,23 @@ class TilePreviewResponse(BaseModel):
     tile_preview_url: str
     tile_size: list[int]
     preview_size: list[int]
+
+
+# ---------------------------------------------------------------------------
+# Tile Scoring
+# ---------------------------------------------------------------------------
+
+class TileScoreRequest(BaseModel):
+    asset_id: str = Field(min_length=1)
+
+
+class EdgeScores(BaseModel):
+    top_bottom_consistency: float
+    left_right_consistency: float
+
+
+class TileScoreResponse(BaseModel):
+    score: float
+    edge_scores: EdgeScores
+    overall_rating: str
+    suggestion: str

@@ -1,7 +1,21 @@
 import { useCallback, useState } from 'react';
-import type { TilePreview as TilePreviewResult } from '../types';
-import { buildTilePreview, getTask } from '../services/api';
+import type { TilePreview as TilePreviewResult, TileScore } from '../types';
+import { buildTilePreview, checkTileScore, getTask } from '../services/api';
 import { DEMO_MODE } from '../config/demo';
+
+const RATING_LABELS: Record<string, string> = {
+  excellent: '优秀 — 无缝平铺',
+  good: '良好 — 有轻微接缝',
+  fair: '一般 — 可见接缝',
+  poor: '较差 — 明显断裂',
+};
+
+const RATING_COLORS: Record<string, string> = {
+  excellent: 'bg-green-900/50 text-green-300 border-green-700',
+  good: 'bg-blue-900/50 text-blue-300 border-blue-700',
+  fair: 'bg-amber-900/50 text-amber-300 border-amber-700',
+  poor: 'bg-red-900/50 text-red-300 border-red-700',
+};
 
 export default function TilePreview() {
   // ---- form state ----
@@ -13,6 +27,7 @@ export default function TilePreview() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [result, setResult] = useState<TilePreviewResult | null>(null);
+  const [scoreResult, setScoreResult] = useState<TileScore | null>(null);
 
   // ---- fetch assets from a completed task ----
   const handleFetchTask = useCallback(async () => {
@@ -40,20 +55,40 @@ export default function TilePreview() {
     setLoading(false);
   }, [taskId]);
 
-  // ---- build 3×3 preview ----
+  // ---- build preview + score (run both in parallel) ----
   const handlePreview = useCallback(async () => {
     if (!selectedAssetId) return;
     setError('');
     setLoading(true);
     setResult(null);
+    setScoreResult(null);
     try {
-      const data = await buildTilePreview({ assetId: selectedAssetId });
-      setResult(data);
+      const [previewData, scoreData] = await Promise.all([
+        buildTilePreview({ assetId: selectedAssetId }),
+        checkTileScore({ assetId: selectedAssetId }),
+      ]);
+      setResult(previewData);
+      setScoreResult(scoreData);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Preview failed');
     }
     setLoading(false);
   }, [selectedAssetId]);
+
+  // ---- score helpers ----
+  const scoreColor = (s: number) => {
+    if (s >= 90) return 'text-green-400';
+    if (s >= 70) return 'text-blue-400';
+    if (s >= 50) return 'text-amber-400';
+    return 'text-red-400';
+  };
+
+  const scoreBarColor = (s: number) => {
+    if (s >= 90) return 'bg-green-500';
+    if (s >= 70) return 'bg-blue-500';
+    if (s >= 50) return 'bg-amber-500';
+    return 'bg-red-500';
+  };
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -106,17 +141,17 @@ export default function TilePreview() {
         )}
       </section>
 
-      {/* ---- step 2: generate preview ---- */}
+      {/* ---- step 2: generate preview + score ---- */}
       <section className="card space-y-4">
         <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">
-          步骤 2 — 3×3 平铺预览
+          步骤 2 — 3×3 平铺预览 & 边缘评分
         </h3>
         <button
           className="btn-primary w-full py-3 text-base"
           disabled={!selectedAssetId || loading}
           onClick={handlePreview}
         >
-          {loading ? '生成中...' : '生成 3×3 平铺预览'}
+          {loading ? '分析中...' : '生成平铺预览并评分'}
         </button>
       </section>
 
@@ -155,39 +190,66 @@ export default function TilePreview() {
             </a>
           </section>
 
-          {/* edge scoring (placeholder for PR #14) */}
+          {/* edge scoring */}
           <section className="card">
             <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">
               边缘一致性评分
             </h3>
-            <div className="flex flex-col items-center justify-center h-full">
-              <div className="text-4xl font-bold text-gray-700 font-mono">--</div>
-              <p className="text-xs text-gray-600 mt-2">0-100，分数越高无缝效果越好</p>
-
-              <div className="mt-4 space-y-2 w-full">
-                <div className="flex justify-between text-xs text-gray-500">
-                  <span>上-下边一致性</span>
-                  <span className="font-mono">--</span>
-                </div>
-                <div className="w-full bg-gray-800 rounded-full h-1.5">
-                  <div className="bg-gray-700 h-1.5 rounded-full" style={{ width: '0%' }} />
+            {scoreResult ? (
+              <div className="flex flex-col items-center gap-4">
+                {/* big score */}
+                <div className="text-center">
+                  <div className={`text-5xl font-bold font-mono ${scoreColor(scoreResult.score)}`}>
+                    {scoreResult.score}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">0-100，分数越高无缝效果越好</p>
                 </div>
 
-                <div className="flex justify-between text-xs text-gray-500">
-                  <span>左-右边一致性</span>
-                  <span className="font-mono">--</span>
-                </div>
-                <div className="w-full bg-gray-800 rounded-full h-1.5">
-                  <div className="bg-gray-700 h-1.5 rounded-full" style={{ width: '0%' }} />
-                </div>
-              </div>
-
-              <div className="mt-4">
-                <span className="px-3 py-1 rounded-full text-xs font-medium bg-gray-800 text-gray-500">
-                  等待数据
+                {/* rating badge */}
+                <span className={`px-3 py-1 rounded-full text-xs font-medium border ${RATING_COLORS[scoreResult.overallRating] || 'bg-gray-800 text-gray-500'}`}>
+                  {RATING_LABELS[scoreResult.overallRating] || scoreResult.overallRating}
                 </span>
+
+                {/* sub-scores */}
+                <div className="space-y-3 w-full">
+                  <div>
+                    <div className="flex justify-between text-xs text-gray-400 mb-1">
+                      <span>上-下边一致性</span>
+                      <span className="font-mono">{scoreResult.edgeScores.topBottomConsistency}</span>
+                    </div>
+                    <div className="w-full bg-gray-800 rounded-full h-2">
+                      <div
+                        className={`h-2 rounded-full transition-all duration-500 ${scoreBarColor(scoreResult.edgeScores.topBottomConsistency)}`}
+                        style={{ width: `${scoreResult.edgeScores.topBottomConsistency}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="flex justify-between text-xs text-gray-400 mb-1">
+                      <span>左-右边一致性</span>
+                      <span className="font-mono">{scoreResult.edgeScores.leftRightConsistency}</span>
+                    </div>
+                    <div className="w-full bg-gray-800 rounded-full h-2">
+                      <div
+                        className={`h-2 rounded-full transition-all duration-500 ${scoreBarColor(scoreResult.edgeScores.leftRightConsistency)}`}
+                        style={{ width: `${scoreResult.edgeScores.leftRightConsistency}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* suggestion */}
+                <div className="bg-gray-900/50 border border-gray-800 rounded-lg p-3 w-full">
+                  <p className="text-xs text-gray-400 leading-relaxed">{scoreResult.suggestion}</p>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center h-full">
+                <div className="text-4xl font-bold text-gray-700 font-mono">--</div>
+                <p className="text-xs text-gray-600 mt-2">点击上方按钮同时生成预览和评分</p>
+              </div>
+            )}
           </section>
         </div>
       )}
@@ -195,9 +257,9 @@ export default function TilePreview() {
       {/* empty state */}
       {!result && !loading && !error && (
         <section className="card text-center py-12">
-          <p className="text-gray-600">加载 Tile 素材后，点击生成按钮查看 3×3 平铺效果</p>
+          <p className="text-gray-600">加载 Tile 素材后，点击生成按钮查看 3×3 平铺效果和边缘一致性评分</p>
           <p className="text-xs text-gray-700 mt-1">
-            平铺预览可帮助您检查 Tile 在重复排列时的边缘过渡效果
+            评分系统会自动比较 Tile 对边的像素差异，给出 0-100 的无缝性评分
           </p>
         </section>
       )}

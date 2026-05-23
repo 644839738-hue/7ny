@@ -1,4 +1,4 @@
-import type { GenerateParams, SpriteSheet, SpriteSheetRequest, TilePreview, TilePreviewRequest } from '../types';
+import type { GenerateParams, SpriteSheet, SpriteSheetRequest, TilePreview, TilePreviewRequest, TileScore, TileScoreRequest } from '../types';
 import { API_BASE } from '../config/demo';
 
 async function request<T>(url: string, options?: RequestInit): Promise<T> {
@@ -60,6 +60,16 @@ export function buildSpriteSheet(params: SpriteSheetRequest) {
       frame_height: params.frameHeight,
       fps: params.fps,
       columns: params.columns,
+    }),
+  });
+}
+
+/** Score a tile's edge consistency for seamless tiling. */
+export function checkTileScore(params: TileScoreRequest) {
+  return request<TileScore>('/tile/score', {
+    method: 'POST',
+    body: JSON.stringify({
+      asset_id: params.assetId,
     }),
   });
 }
