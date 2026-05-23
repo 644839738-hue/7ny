@@ -131,6 +131,22 @@ class GenerateResponse(BaseModel):
     message: str = "Task created"
 
 
+# ---------------------------------------------------------------------------
+# Process / Trim
+# ---------------------------------------------------------------------------
+
+class TrimRequest(BaseModel):
+    asset_id: str = Field(min_length=1)
+
+
+class TrimResponse(BaseModel):
+    asset_id: str
+    original_size: list[int]
+    trimmed_size: list[int]
+    processed_url: str
+    crop_box: list[int]
+
+
 class TaskStatusResponse(BaseModel):
     """Returned by GET /api/tasks/{task_id}."""
     task_id: str

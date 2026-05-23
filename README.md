@@ -130,7 +130,7 @@ uvicorn app.main:app --reload
 | FastAPI | ^0.111 | 后端 REST 框架 | MIT |
 | Uvicorn | ^0.30 | ASGI 服务器 | BSD |
 | Pydantic | ^2.7 | 数据校验与序列化 | MIT |
-| Pillow | 待定 | 图像处理 | HPND |
+| Pillow | ^10.0 | 透明裁剪、尺寸标准化、主体居中 | HPND |
 | OpenCV | 待定 | Tile 边缘检测 | Apache 2.0 |
 
 ## 原创功能说明
