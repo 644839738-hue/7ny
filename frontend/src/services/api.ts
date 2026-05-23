@@ -1,4 +1,4 @@
-import type { GenerateParams, SpriteSheet, SpriteSheetRequest } from '../types';
+import type { GenerateParams, SpriteSheet, SpriteSheetRequest, TilePreview, TilePreviewRequest } from '../types';
 import { API_BASE } from '../config/demo';
 
 async function request<T>(url: string, options?: RequestInit): Promise<T> {
@@ -60,6 +60,16 @@ export function buildSpriteSheet(params: SpriteSheetRequest) {
       frame_height: params.frameHeight,
       fps: params.fps,
       columns: params.columns,
+    }),
+  });
+}
+
+/** Build a 3×3 tiling preview for a tile asset. */
+export function buildTilePreview(params: TilePreviewRequest) {
+  return request<TilePreview>('/tile/preview', {
+    method: 'POST',
+    body: JSON.stringify({
+      asset_id: params.assetId,
     }),
   });
 }

@@ -71,6 +71,18 @@ export interface SpriteSheet {
   fps: number;
 }
 
+/** Tile preview request */
+export interface TilePreviewRequest {
+  assetId: string;
+}
+
+/** Tile 3x3 preview */
+export interface TilePreview {
+  tilePreviewUrl: string;
+  tileSize: [number, number];
+  previewSize: [number, number];
+}
+
 /** Tile edge consistency score */
 export interface TileScore {
   score: number;
@@ -79,13 +91,6 @@ export interface TileScore {
     leftRightConsistency: number;
   };
   overallRating: 'excellent' | 'good' | 'fair' | 'poor';
-}
-
-/** Tile 3x3 preview */
-export interface TilePreview {
-  tilePreviewUrl: string;
-  tileSize: [number, number];
-  previewSize: [number, number];
 }
 
 /** Export result */

@@ -190,3 +190,17 @@ class TaskStatusResponse(BaseModel):
     error: Optional[str] = None
     warning: Optional[str] = None
     provider: Optional[str] = None
+
+
+# ---------------------------------------------------------------------------
+# Tile Preview
+# ---------------------------------------------------------------------------
+
+class TilePreviewRequest(BaseModel):
+    asset_id: str = Field(min_length=1)
+
+
+class TilePreviewResponse(BaseModel):
+    tile_preview_url: str
+    tile_size: list[int]
+    preview_size: list[int]
