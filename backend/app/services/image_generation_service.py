@@ -29,13 +29,14 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
-from app.config import DEMO_MODE, OUTPUT_DIR
+from app.config import ALLOW_DEMO_FALLBACK, DEMO_MODE, IMAGE_PROVIDER, OUTPUT_DIR
 from app.models.schemas import (
     AssetMetadata,
     GeneratedAsset,
     GenerateRequest,
 )
 from app.utils.demo_provider import resolve_sample_path
+from app.services.wanxiang_image_provider import WanxiangImageProvider
 
 logger = logging.getLogger(__name__)
 
@@ -195,12 +196,17 @@ class ExternalImageProvider(ImageGenerationProvider):
 # ---------------------------------------------------------------------------
 
 def _create_provider() -> ImageGenerationProvider:
-    """Return the appropriate provider based on ``DEMO_MODE``."""
-    if DEMO_MODE:
+    """Return the appropriate provider based on ``DEMO_MODE`` and ``IMAGE_PROVIDER``."""
+    if DEMO_MODE or IMAGE_PROVIDER == "demo":
         logger.info("Image generation: using DEMO provider")
         return DemoImageProvider()
 
-    logger.info("Image generation: using EXTERNAL provider")
+    if IMAGE_PROVIDER == "wanxiang":
+        logger.info("Image generation: using WANXIANG provider")
+        return WanxiangImageProvider()  # type: ignore[return-value]
+
+    # Fallback for legacy / unknown provider → try External (stub)
+    logger.info("Image generation: using EXTERNAL provider (legacy)")
     return ExternalImageProvider()
 
 
@@ -228,7 +234,7 @@ def generate_assets(req: GenerateRequest) -> ImageGenerationResult:
     """Run generation with automatic demo-fallback on failure.
 
     *Always* returns assets — if the external provider fails and
-    ``DEMO_MODE`` is off, the demo provider is used as a safety net.
+    ``ALLOW_DEMO_FALLBACK`` is true, the demo provider is used as a safety net.
     """
     provider = _create_provider()
 
@@ -242,15 +248,23 @@ def generate_assets(req: GenerateRequest) -> ImageGenerationResult:
         if provider.provider_name == "demo":
             raise  # demo itself failed — nothing left to fall back to
 
+        if not ALLOW_DEMO_FALLBACK:
+            raise  # no fallback allowed — let the caller handle the error
+
         logger.warning(
-            "External generation failed (%s), falling back to demo provider",
+            "%s generation failed (%s), falling back to demo provider",
+            provider.provider_name,
             exc,
         )
         fallback = DemoImageProvider()
         warning_msg = (
-            f"External generation failed: {exc}. "
-            f"Falling back to demo assets. "
-            f"Set IMAGE_API_BASE_URL and IMAGE_API_KEY to use real AI generation."
+            f"Wanxiang generation failed, fallback to demo: {exc}"
+            if provider.provider_name == "wanxiang"
+            else (
+                f"External generation failed: {exc}. "
+                f"Falling back to demo assets. "
+                f"Set IMAGE_API_BASE_URL and IMAGE_API_KEY to use real AI generation."
+            )
         )
         assets = fallback.generate(req)
         return ImageGenerationResult(

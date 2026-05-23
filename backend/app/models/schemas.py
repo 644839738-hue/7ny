@@ -60,8 +60,11 @@ class HealthResponse(BaseModel):
 class AssetMetadata(BaseModel):
     prompt: str = ""
     generated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    generation_mode: Literal["demo", "ai"] = "demo"
+    generation_mode: str = "demo"
     warning: Optional[str] = None
+    provider: Optional[str] = None
+    model: Optional[str] = None
+    final_prompt: Optional[str] = None
 
 
 class AssetInfo(BaseModel):

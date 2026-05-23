@@ -15,13 +15,14 @@
 - [7. 项目结构](#7-项目结构)
 - [8. 本地运行方式](#8-本地运行方式)
 - [9. Demo 模式说明](#9-demo-模式说明)
-- [10. 环境变量说明](#10-环境变量说明)
-- [11. 第三方依赖与用途](#11-第三方依赖与用途)
-- [12. 原创功能说明](#12-原创功能说明)
-- [13. API 文档入口](#13-api-文档入口)
-- [14. Demo 视频链接](#14-demo-视频链接)
-- [15. PR 与 Commit 规范](#15-pr-与-commit-规范)
-- [16. 学术诚信与知识产权说明](#16-学术诚信与知识产权说明)
+- [10. 通义万相 AI 生成模式](#10-通义万相-ai-生成模式)
+- [11. 环境变量说明](#11-环境变量说明)
+- [12. 第三方依赖与用途](#12-第三方依赖与用途)
+- [13. 原创功能说明](#13-原创功能说明)
+- [14. API 文档入口](#14-api-文档入口)
+- [15. Demo 视频链接](#15-demo-视频链接)
+- [16. PR 与 Commit 规范](#16-pr-与-commit-规范)
+- [17. 学术诚信与知识产权说明](#17-学术诚信与知识产权说明)
 
 ---
 
@@ -315,15 +316,69 @@ DEMO_MODE=true (默认)
 
 ---
 
-## 10. 环境变量说明
+## 10. 通义万相 AI 生成模式
+
+Demo 模式保证项目无 API Key 也可复现全部功能。当需要真实 AI 生成时，可切换至**通义万相（Tongyi Wanxiang）模式**，由阿里云 DashScope 文生图 API 根据 prompt 生成真实的 2D 游戏素材。
+
+### 两种模式对比
+
+| 模式 | 配置 | 图像来源 | 需要 API Key |
+|------|------|----------|-------------|
+| Demo | `DEMO_MODE=true` | 内置样例素材（`examples/sample-assets/`） | 否 |
+| 通义万相 | `DEMO_MODE=false` + `IMAGE_PROVIDER=wanxiang` | DashScope 文生图 API | 是（[DashScope API Key](https://dashscope.console.aliyun.com/)） |
+
+### 启用通义万相模式
+
+```bash
+# 1. 复制环境变量模板
+cp backend/.env.example backend/.env
+
+# 2. 编辑 backend/.env，填入你的 API Key
+#    DASHSCOPE_API_KEY=sk-xxxxxxxxxxxxxxxx
+#    DEMO_MODE=false
+#    IMAGE_PROVIDER=wanxiang
+
+# 3. 启动后端（.env 会被自动加载）
+cd backend
+uvicorn app.main:app --reload --host 127.0.0.1 --port 8001
+```
+
+### 提示词构造
+
+通义万相 Provider 会根据素材类型、风格和用户 prompt 自动构造游戏素材专用的生成提示词：
+
+- **character**：生成单个 2D 游戏角色 sprite（全身、站立、正面、透明背景）
+- **item**：生成单个游戏道具图标（居中、道具栏视角、透明背景）
+- **tile**：生成无缝可平铺的 2D 地图 Tile（俯视、纹理边缘匹配）
+- **ui**：生成 2D 游戏 UI 元素（居中、透明背景、干净界面）
+
+### 失败回退
+
+如果通义万相调用失败（如 API Key 无效、网络超时、配额不足），且 `ALLOW_DEMO_FALLBACK=true`（默认），系统会自动回退到 Demo 模式。返回的 asset 的 `metadata.warning` 会写明回退原因：“Wanxiang generation failed, fallback to demo: <错误原因>”。
+
+### 重要提醒
+
+- **不要将 `backend/.env` 提交到版本控制**（已在 `.gitignore` 中排除）
+- 通义万相负责图片生成，**本项目原创部分**是素材工作流、后处理、Sprite Sheet 拼接、Tile 评分和 Unity/Godot 导出管线
+
+---
+
+## 11. 环境变量说明
 
 ### 后端环境变量
 
 | 变量 | 默认值 | 必填 | 说明 |
 |------|--------|------|------|
-| `SPRITEFORGE_DEMO_MODE` | `true` | 否 | `true`=使用内置样例素材；`false`=调用外部 AI API |
-| `IMAGE_API_KEY` | (空) | 仅非 Demo | 外部图像生成 API 的 Key / Token |
-| `IMAGE_API_BASE_URL` | (空) | 仅非 Demo | 外部图像生成 API 的基础 URL |
+| `DEMO_MODE` | `true` | 否 | `true`=使用内置样例素材；`false`=调用 `IMAGE_PROVIDER` 指定的生成后端 |
+| `IMAGE_PROVIDER` | `demo` | 否 | 图像生成后端：`demo` / `wanxiang` |
+| `DASHSCOPE_API_KEY` | (空) | 仅 wanxiang | 通义万相 DashScope API Key |
+| `WANXIANG_MODEL` | `wan2.2-t2i-flash` | 否 | 通义万相模型：`wan2.2-t2i-flash` / `wan2.2-t2i-pro` |
+| `WANXIANG_SIZE` | `1024*1024` | 否 | 生成图片尺寸 |
+| `WANXIANG_N` | `1` | 否 | 单次 API 调用生成图片数（1-4） |
+| `ALLOW_DEMO_FALLBACK` | `true` | 否 | AI 生成失败时是否自动回退 Demo |
+| `SPRITEFORGE_DEMO_MODE` | `true` | 否 | (旧, 兼容) `true`=Demo 模式 |
+| `IMAGE_API_KEY` | (空) | 仅非 Demo | (旧) 外部图像生成 API 的 Key |
+| `IMAGE_API_BASE_URL` | (空) | 仅非 Demo | (旧) 外部图像生成 API 的基础 URL |
 | `SPRITEFORGE_HOST` | `0.0.0.0` | 否 | 后端绑定地址 |
 | `SPRITEFORGE_PORT` | `8000` | 否 | 后端绑定端口 |
 
@@ -349,7 +404,7 @@ $env:SPRITEFORGE_DEMO_MODE = "true"
 
 ---
 
-## 11. 第三方依赖与用途
+## 12. 第三方依赖与用途
 
 ### 后端依赖（Python）
 
@@ -360,6 +415,9 @@ $env:SPRITEFORGE_DEMO_MODE = "true"
 | [Pydantic](https://github.com/pydantic/pydantic) | ^2.7 | 请求/响应数据校验与序列化 | MIT |
 | [Pillow](https://github.com/python-pillow/Pillow) | ^10.0 | 图像处理：透明背景、裁剪、缩放、拼接、RGB 边缘检测 | HPND |
 | [python-multipart](https://github.com/Kludex/python-multipart) | ^0.0.9 | 文件上传解析（FastAPI 依赖） | Apache 2.0 |
+| [dashscope](https://pypi.org/project/dashscope/) | ^1.20 | 通义万相 / DashScope AI 图像生成 SDK | Apache 2.0 |
+| [python-dotenv](https://github.com/theskumar/python-dotenv) | ^1.0 | 从 .env 文件加载环境变量 | BSD |
+| [requests](https://github.com/psf/requests) | ^2.31 | 下载通义万相生成的图片 | Apache 2.0 |
 
 ### 后端测试依赖
 
@@ -389,7 +447,7 @@ $env:SPRITEFORGE_DEMO_MODE = "true"
 
 ---
 
-## 12. 原创功能说明
+## 13. 原创功能说明
 
 ### 重要声明
 
@@ -418,7 +476,7 @@ $env:SPRITEFORGE_DEMO_MODE = "true"
 
 ---
 
-## 13. API 文档入口
+## 14. API 文档入口
 
 ### Swagger UI（交互式文档）
 
@@ -448,7 +506,7 @@ $env:SPRITEFORGE_DEMO_MODE = "true"
 
 ---
 
-## 14. Demo 视频链接
+## 15. Demo 视频链接
 
 > **待录制** — 视频链接占位
 
@@ -492,7 +550,7 @@ examples/sample-export/
 
 ---
 
-## 15. PR 与 Commit 规范
+## 16. PR 与 Commit 规范
 
 ### Commit Message 格式
 
@@ -532,13 +590,13 @@ docs(readme): add third-party dependency declarations
 
 ---
 
-## 16. 学术诚信与知识产权说明
+## 17. 学术诚信与知识产权说明
 
 ### 代码原创性
 
 - 本项目所有代码（前端组件、后端服务、图像处理算法、测试用例）均为手工编写
 - 未直接复制任何开源项目的完整文件或模块
-- 使用的第三方库均通过包管理器（npm / pip）标准方式引入，并在 [§11](#11-第三方依赖与用途) 中逐一列出版本、用途和许可证
+- 使用的第三方库均通过包管理器（npm / pip）标准方式引入，并在 [§12](#12-第三方依赖与用途) 中逐一列出版本、用途和许可证
 
 ### AI 生成能力说明
 
@@ -557,7 +615,7 @@ docs(readme): add third-party dependency declarations
 
 ### 第三方库许可证合规
 
-所有第三方依赖均为 MIT、BSD、Apache 2.0 或 HPND 等宽松许可证，允许在竞赛项目中自由使用。完整列表见 [§11](#11-第三方依赖与用途)。
+所有第三方依赖均为 MIT、BSD、Apache 2.0 或 HPND 等宽松许可证，允许在竞赛项目中自由使用。完整列表见 [§12](#12-第三方依赖与用途)。
 
 ### 参考资料
 
