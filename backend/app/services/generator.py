@@ -1,27 +1,29 @@
 """
-Asset generation service — orchestrates the generation pipeline.
+Asset generation orchestrator — manages generation tasks end-to-end.
 
-In DEMO mode, copies sample assets into the output directory.  When a
-real AI provider is available it will be called instead (future PR).
+Responsibilities
+----------------
+* Task lifecycle (create, store, update status)
+* Delegating generation to :mod:`image_generation_service`
+* Handling provider fallback warnings
+
+This module does **not** contain image-generation logic itself — that
+lives in :class:`image_generation_service.ImageGenerationProvider`.
 """
 
 from __future__ import annotations
 
-import shutil
 import uuid
 from datetime import datetime, timezone
-from pathlib import Path
 from typing import Optional
 
-from app.config import DEMO_MODE, OUTPUT_DIR
+from app.config import DEMO_MODE
 from app.models.schemas import (
-    AssetMetadata,
-    AssetType,
     GeneratedAsset,
     GenerateRequest,
     TaskStatus,
 )
-from app.utils.demo_provider import resolve_sample_path
+from app.services.image_generation_service import generate_assets
 
 
 # ---------------------------------------------------------------------------
@@ -39,6 +41,8 @@ def _store_task(task_id: str, **fields) -> None:
         "assets": [],
         "created_at": datetime.now(timezone.utc),
         "error": None,
+        "warning": None,
+        "provider": "demo" if DEMO_MODE else "external",
         **fields,
     }
 
@@ -48,66 +52,38 @@ def get_task(task_id: str) -> Optional[dict]:
 
 
 # ---------------------------------------------------------------------------
-# Generator
+# Public API
 # ---------------------------------------------------------------------------
 
 def run_generation(req: GenerateRequest) -> str:
-    """Create a task and begin generation.  Returns the task_id immediately."""
+    """Create a task, run generation, return ``task_id``.
+
+    Generation is currently **synchronous** (both demo and external stub
+    complete in-process).  When a real async AI provider is added the call
+    to ``generate_assets`` should be dispatched to a background worker.
+    """
     task_id = str(uuid.uuid4())
-    _store_task(task_id, status=TaskStatus.PENDING)
+    _store_task(task_id)
 
-    if DEMO_MODE:
-        _run_demo(task_id, req)
-    else:
-        _store_task(task_id, status=TaskStatus.GENERATING)
-        # AI provider integration goes here (future PR)
-
-    return task_id
-
-
-def _run_demo(task_id: str, req: GenerateRequest) -> None:
-    """Copy matching sample assets as the generation result."""
     task = _TASKS[task_id]
     task["status"] = TaskStatus.GENERATING
 
-    sample_path = resolve_sample_path(req.asset_type, req.size)
-    if sample_path is None:
+    try:
+        result = generate_assets(req)
+    except Exception as exc:
         task["status"] = TaskStatus.FAILED
-        task["error"] = (
-            f"No sample asset found for type={req.asset_type.value} "
-            f"size={req.size.value}"
-        )
-        return
-
-    assets: list[GeneratedAsset] = []
-    for i in range(req.count):
-        asset_id = str(uuid.uuid4())
-        name = f"{req.asset_type.value}_{req.size.value}x{req.size.value}_{i+1}"
-        ext = sample_path.suffix
-
-        # Copy to output directory so it's served as static
-        dest_name = f"{asset_id}{ext}"
-        dest = Path(OUTPUT_DIR) / dest_name
-        dest.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(str(sample_path), str(dest))
-
-        image_url = f"/output/{dest_name}"
-        assets.append(
-            GeneratedAsset(
-                id=asset_id,
-                name=name,
-                type=req.asset_type,
-                width=req.size.value,
-                height=req.size.value,
-                image_url=image_url,
-                metadata=AssetMetadata(
-                    prompt=req.prompt,
-                    generated_at=datetime.now(timezone.utc),
-                    generation_mode="demo",
-                ),
-            )
-        )
+        task["error"] = str(exc)
+        return task_id
 
     task["status"] = TaskStatus.READY
-    task["assets"] = [a.model_dump() for a in assets]
-    task["progress"] = f"{len(assets)}/{req.count} assets generated (demo)"
+    task["assets"] = [a.model_dump() for a in result.assets]
+    task["progress"] = (
+        f"{len(result.assets)}/{req.count} assets generated "
+        f"({result.provider_used})"
+    )
+    task["provider"] = result.provider_used
+
+    if result.fallback_occurred and result.warning:
+        task["warning"] = result.warning
+
+    return task_id

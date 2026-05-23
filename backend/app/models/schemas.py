@@ -61,6 +61,7 @@ class AssetMetadata(BaseModel):
     prompt: str = ""
     generated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     generation_mode: Literal["demo", "ai"] = "demo"
+    warning: Optional[str] = None
 
 
 class AssetInfo(BaseModel):
@@ -138,3 +139,5 @@ class TaskStatusResponse(BaseModel):
     assets: list[GeneratedAsset] = Field(default_factory=list)
     created_at: Optional[datetime] = None
     error: Optional[str] = None
+    warning: Optional[str] = None
+    provider: Optional[str] = None

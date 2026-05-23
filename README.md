@@ -99,6 +99,24 @@ uvicorn app.main:app --reload
 
 后端 API 文档访问 `http://localhost:8000/docs`。
 
+### 环境变量（后端）
+
+| 变量 | 默认值 | 说明 |
+|------|--------|------|
+| `SPRITEFORGE_DEMO_MODE` | `true` | 设为 `false` 启用外部 AI 生成 |
+| `IMAGE_API_KEY` | (空) | 外部图像生成 API 的 Key / Token |
+| `IMAGE_API_BASE_URL` | (空) | 外部图像生成 API 的基础 URL |
+
+> **安全提示**：请勿将 `IMAGE_API_KEY` 写入代码或提交到 Git。
+> 使用环境变量或 `.env` 文件（已在 `.gitignore` 中排除）。
+
+### DEMO 模式 vs AI 模式
+
+| 模式 | DEMO_MODE | 行为 |
+|------|-----------|------|
+| DEMO | `true`（默认） | 使用内置样例素材，无需任何 API Key |
+| AI | `false` | 调用外部图像生成 API；若失败自动回退 DEMO |
+
 ## 第三方依赖说明
 
 > 待补充 — 将在各阶段 PR 中随依赖引入逐步更新
@@ -117,11 +135,14 @@ uvicorn app.main:app --reload
 
 ## 原创功能说明
 
+> **声明**：本项目的原创核心是 **游戏资产工作流管线**（后处理、Sprite Sheet、Tile 检测、引擎导出），
+> 而非 AI 图像生成本身。外部 AI 生成能力为可选接入模块，默认 DEMO 模式无需任何外部 API。
+
 1. **资产化后处理管线** — 透明背景移除、空白区域裁剪、尺寸标准化、主体居中的完整处理链路，串联为自动化管线
 2. **Tile 边缘一致性评分算法** — 基于四边 RGB 均值比对的 Tile 无缝性评估方法，填补 AI 生成 Tile 的质量检测空白
-3. **DEMO 模式架构** — 前后端均可无外部 API 依赖运行的完整流程设计，使用 Provider 抽象模式实现 Demo / AI 生成的无感切换
+3. **DEMO 模式 + 自动回退** — 前后端均可无外部 API 运行；AI 模式失败时自动回退 DEMO，保证流程不中断
 4. **引擎感知导出** — 自动生成 Unity `.meta` 占位和 Godot `.import` 占位，按引擎目录约定组织 ZIP 包结构
-5. **Provider 可插拔 AI 层** — 通过抽象接口隔离 AI 生成后端，方便扩展新的 AI Provider
+5. **Provider 可插拔 AI 层** — 通过抽象接口隔离生成后端，Demo / AI 无感切换，便于扩展
 
 ## Demo 视频
 

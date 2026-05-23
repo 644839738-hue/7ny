@@ -64,4 +64,6 @@ def query_task(task_id: str) -> TaskStatusResponse:
         assets=[GeneratedAsset(**a) for a in task.get("assets", [])],
         created_at=task.get("created_at"),
         error=task.get("error"),
+        warning=task.get("warning"),
+        provider=task.get("provider"),
     )

@@ -12,6 +12,12 @@ import os
 # external AI API.  Controlled by SPRITEFORGE_DEMO_MODE env var.
 DEMO_MODE: bool = os.getenv("SPRITEFORGE_DEMO_MODE", "true").lower() != "false"
 
+# --- External AI API ---
+# Only used when DEMO_MODE=false.  If the external API call fails, the
+# service automatically falls back to the demo provider.
+IMAGE_API_KEY: str = os.getenv("IMAGE_API_KEY", "")
+IMAGE_API_BASE_URL: str = os.getenv("IMAGE_API_BASE_URL", "")
+
 # --- Server ---
 HOST: str = os.getenv("SPRITEFORGE_HOST", "0.0.0.0")
 PORT: int = int(os.getenv("SPRITEFORGE_PORT", "8000"))
