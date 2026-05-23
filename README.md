@@ -1,50 +1,100 @@
 # SpriteForge AI
 
-> 面向独立游戏开发者的 2D 游戏素材生成工具 — 参赛项目
+> 面向 2D 游戏开发工作流的 AI 素材生成与资产化管线 — 参赛项目
 
 ## 题目选择
 
-「2D 游戏素材生成」— 通过文本描述和简单参数，快速生成像素风 2D 游戏素材，并自动完成游戏资产化处理。
+「**2D 游戏素材生成**」— 通过文本描述和简单参数生成像素风 2D 游戏素材，并自动完成从「AI 生成图像」到「游戏引擎可导入资产」的工程化处理。
 
-## 功能规划
+## 项目简介
 
-- 支持角色、道具、Tile、UI 四类素材生成
-- 支持像素风 32×32 / 64×64 输出
-- 自动资产化处理（透明背景、裁剪、尺寸标准化、主体居中）
-- Sprite Sheet 拼接 + JSON 元数据
-- Tile 3×3 平铺预览 + 边缘一致性评分
-- Unity / Godot ZIP 素材包导出
-- 内置 DEMO 模式，无需外部 AI API 即可跑通完整流程
+SpriteForge AI **不是普通的文生图工具**。传统 AI 图像生成器（DALL·E、Midjourney 等）产出的图像无法直接用于游戏开发——它们缺少透明背景、尺寸不统一、无 Sprite Sheet 元数据、Tile 边缘可能断裂。SpriteForge AI 在「生成」和「可用」之间架设了一条完整的资产化管线。
+
+### 核心工作流
+
+```
+输入 Prompt + 参数  →  AI 生成（或 DEMO 素材）  →  自动后处理  →  预览 / 检测  →  引擎适配导出
+```
+
+## 核心功能
+
+| 功能 | 说明 | 创新点 |
+|------|------|--------|
+| 文本/参数生成素材 | 输入 prompt + 选择类型/尺寸/风格，一键生成 | 面向游戏资产的结构化生成，非泛化文生图 |
+| 四类素材支持 | 角色（Character）、道具（Prop）、Tile、UI | 覆盖 2D 游戏核心素材类型 |
+| 像素风双尺寸 | 32×32 和 64×64 输出 | 适配主流像素游戏规格 |
+| 自动资产化后处理 | 透明背景 → 空白裁剪 → 尺寸标准化 → 主体居中 | **完整管线，非单点功能** |
+| Sprite Sheet 拼接 | 多帧素材自动拼接 + JSON 帧元数据 | 直出引擎可用格式 |
+| Tile 3×3 平铺预览 | 单 Tile 自动拼成 3×3 网格 | 直观检查平铺效果 |
+| Tile 边缘一致性评分 | 检测四边 RGB 差异，输出 0-100 无缝评分 | **自研检测算法** |
+| Unity / Godot 导出 | 按引擎目录约定打包 ZIP | **引擎感知导出** |
+| DEMO 模式 | 无需外部 AI API，内置样例素材跑通全流程 | **确保可复现可评审** |
 
 ## 技术栈
 
-> 待补充
-
-## 运行方式
-
-> 待补充
+| 层 | 技术 | 用途 |
+|----|------|------|
+| Frontend | React 18 + Vite + TypeScript + Tailwind CSS | Web 交互界面 |
+| Backend | Python FastAPI + Pydantic v2 | REST API 服务 |
+| Image Processing | Pillow + OpenCV | 图像处理、Tile 检测 |
+| AI Generation | 可配置 Provider（默认 DEMO 模式） | 素材生成 |
+| Export | Python zipfile | ZIP 打包 |
 
 ## 项目结构
 
 ```
 spriteforge-ai/
-├── frontend/          # React + Vite + TypeScript + Tailwind CSS
-├── backend/           # Python FastAPI + Pillow
-├── docs/              # 项目文档
-├── examples/          # 样例素材与导出示例
-│   ├── sample-assets/ # DEMO 模式内置素材
-│   └── sample-export/ # 导出示例
-├── .github/           # CI / PR 模板
+├── frontend/                 # React + Vite + TypeScript + Tailwind CSS
+│   ├── public/
+│   └── src/
+│       ├── components/       # UI 组件
+│       ├── pages/            # 页面
+│       ├── services/         # API 调用封装
+│       ├── hooks/            # 自定义 Hooks
+│       ├── types/            # TypeScript 类型定义
+│       └── config/           # 配置（含 DEMO 开关）
+├── backend/                  # Python FastAPI
+│   ├── app/
+│   │   ├── routers/          # API 路由
+│   │   ├── services/         # 业务逻辑
+│   │   ├── models/           # Pydantic Schemas
+│   │   └── utils/            # 工具函数
+│   └── requirements.txt
+├── docs/                     # 项目文档
+│   ├── prd.md               # 产品需求文档
+│   ├── architecture.md      # 架构设计文档
+│   └── api.md               # API 文档
+├── examples/
+│   ├── sample-assets/        # DEMO 模式内置素材
+│   └── sample-export/        # 导出示例
+├── .github/
+│   └── pull_request_template.md
 └── README.md
 ```
 
+## 运行方式
+
+> 待补充（前端 `npm run dev` + 后端 `uvicorn app.main:app --reload`）
+
 ## 第三方依赖说明
 
-> 待补充
+> 待补充 — 将在各阶段 PR 中随依赖引入逐步更新
+
+| 依赖 | 版本 | 用途 | 许可证 |
+|------|------|------|--------|
+| React | 待定 | 前端框架 | MIT |
+| Vite | 待定 | 构建工具 | MIT |
+| FastAPI | 待定 | 后端框架 | MIT |
+| Pillow | 待定 | 图像处理 | HPND |
+| OpenCV | 待定 | Tile 边缘检测 | Apache 2.0 |
 
 ## 原创功能说明
 
-> 待补充
+1. **资产化后处理管线** — 透明背景移除、空白区域裁剪、尺寸标准化、主体居中的完整处理链路，串联为自动化管线
+2. **Tile 边缘一致性评分算法** — 基于四边 RGB 均值比对的 Tile 无缝性评估方法，填补 AI 生成 Tile 的质量检测空白
+3. **DEMO 模式架构** — 前后端均可无外部 API 依赖运行的完整流程设计，使用 Provider 抽象模式实现 Demo / AI 生成的无感切换
+4. **引擎感知导出** — 自动生成 Unity `.meta` 占位和 Godot `.import` 占位，按引擎目录约定组织 ZIP 包结构
+5. **Provider 可插拔 AI 层** — 通过抽象接口隔离 AI 生成后端，方便扩展新的 AI Provider
 
 ## Demo 视频
 
