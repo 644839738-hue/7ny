@@ -20,7 +20,7 @@ IMAGE_API_BASE_URL: str = os.getenv("IMAGE_API_BASE_URL", "")
 
 # --- Server ---
 HOST: str = os.getenv("SPRITEFORGE_HOST", "0.0.0.0")
-PORT: int = int(os.getenv("SPRITEFORGE_PORT", "8000"))
+PORT: int = int(os.getenv("SPRITEFORGE_PORT", "8001"))
 
 # --- Paths ---
 # Base directory of the backend package
