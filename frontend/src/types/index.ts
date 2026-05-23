@@ -99,6 +99,16 @@ export interface TileScore {
   suggestion: string;
 }
 
+/** Export request */
+export interface ExportRequest {
+  projectName: string;
+  assetIds: string[];
+  engine: EngineType;
+  includeSpritesheet: boolean;
+  includeMetadata: boolean;
+  includeTilePreview: boolean;
+}
+
 /** Export result */
 export interface ExportResult {
   downloadUrl: string;

@@ -224,3 +224,28 @@ class TileScoreResponse(BaseModel):
     edge_scores: EdgeScores
     overall_rating: str
     suggestion: str
+
+
+# ---------------------------------------------------------------------------
+# Export
+# ---------------------------------------------------------------------------
+
+class ExportRequest(BaseModel):
+    project_name: str = Field(min_length=1, max_length=100)
+    asset_ids: list[str] = Field(min_length=1, max_length=128)
+    engine: EngineType
+    include_spritesheet: bool = True
+    include_metadata: bool = True
+    include_tile_preview: bool = True
+
+
+class PackageStructure(BaseModel):
+    engine: EngineType
+    files: list[str]
+
+
+class ExportResponse(BaseModel):
+    download_url: str
+    package_structure: PackageStructure
+    file_count: int
+    total_size_bytes: int

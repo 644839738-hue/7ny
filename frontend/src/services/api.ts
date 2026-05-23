@@ -1,4 +1,4 @@
-import type { GenerateParams, SpriteSheet, SpriteSheetRequest, TilePreview, TilePreviewRequest, TileScore, TileScoreRequest } from '../types';
+import type { ExportRequest, ExportResult, GenerateParams, SpriteSheet, SpriteSheetRequest, TilePreview, TilePreviewRequest, TileScore, TileScoreRequest } from '../types';
 import { API_BASE } from '../config/demo';
 
 async function request<T>(url: string, options?: RequestInit): Promise<T> {
@@ -80,6 +80,21 @@ export function buildTilePreview(params: TilePreviewRequest) {
     method: 'POST',
     body: JSON.stringify({
       asset_id: params.assetId,
+    }),
+  });
+}
+
+/** Export assets as a ZIP package for a target engine. */
+export function exportPackage(params: ExportRequest) {
+  return request<ExportResult>('/export', {
+    method: 'POST',
+    body: JSON.stringify({
+      project_name: params.projectName,
+      asset_ids: params.assetIds,
+      engine: params.engine,
+      include_spritesheet: params.includeSpritesheet,
+      include_metadata: params.includeMetadata,
+      include_tile_preview: params.includeTilePreview,
     }),
   });
 }
