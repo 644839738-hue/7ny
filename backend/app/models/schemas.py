@@ -147,6 +147,39 @@ class TrimResponse(BaseModel):
     crop_box: list[int]
 
 
+# ---------------------------------------------------------------------------
+# Sprite Sheet
+# ---------------------------------------------------------------------------
+
+class SpriteSheetRequest(BaseModel):
+    asset_ids: list[str] = Field(min_length=1, max_length=64)
+    animation_name: str = Field(default="default", min_length=1, max_length=64)
+    frame_width: int = Field(default=32, ge=1, le=1024)
+    frame_height: int = Field(default=32, ge=1, le=1024)
+    fps: int = Field(default=12, ge=1, le=120)
+    columns: int = Field(default=4, ge=1, le=16)
+
+
+class SpriteSheetFrame(BaseModel):
+    index: int
+    x: int
+    y: int
+    width: int
+    height: int
+
+
+class SpriteSheetResponse(BaseModel):
+    spritesheet_url: str
+    spritesheet_size: list[int]
+    frames: list[SpriteSheetFrame]
+    metadata_url: str
+    animation_name: str
+    frame_width: int
+    frame_height: int
+    frame_count: int
+    fps: int
+
+
 class TaskStatusResponse(BaseModel):
     """Returned by GET /api/tasks/{task_id}."""
     task_id: str

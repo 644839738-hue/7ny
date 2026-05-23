@@ -11,7 +11,7 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.config import CORS_ORIGINS, DEMO_MODE, OUTPUT_DIR
-from app.routers import generate, health, process
+from app.routers import generate, health, process, spritesheet
 
 # ---------------------------------------------------------------------------
 # App factory
@@ -44,6 +44,7 @@ app.add_middleware(
 app.include_router(health.router)
 app.include_router(generate.router)
 app.include_router(process.router)
+app.include_router(spritesheet.router)
 
 # ---------------------------------------------------------------------------
 # Startup

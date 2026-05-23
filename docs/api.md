@@ -197,18 +197,29 @@ POST /api/process
 POST /api/spritesheet
 ```
 
-将多帧素材拼接为单张 Sprite Sheet，并生成每帧的坐标元数据。
+将已生成的素材帧拼接为单张 Sprite Sheet，同时生成 JSON 元数据文件（含帧坐标与动画信息）。
 
 **Request Body:**
 
 ```json
 {
   "asset_ids": ["uuid-1", "uuid-2", "uuid-3", "uuid-4"],
-  "columns": 4,
+  "animation_name": "walk_right",
   "frame_width": 32,
-  "frame_height": 32
+  "frame_height": 32,
+  "fps": 12,
+  "columns": 4
 }
 ```
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| asset_ids | string[] | 是 | 已生成素材的 ID 列表，1-64 个 |
+| animation_name | string | 否 | 动画名称，默认 `"default"` |
+| frame_width | int | 否 | 帧宽（px），默认 32 |
+| frame_height | int | 否 | 帧高（px），默认 32 |
+| fps | int | 否 | 帧率，默认 12 |
+| columns | int | 否 | 每行列数，默认 4 |
 
 **Response (200):**
 
@@ -222,7 +233,33 @@ POST /api/spritesheet
     { "index": 2, "x": 64, "y": 0, "width": 32, "height": 32 },
     { "index": 3, "x": 96, "y": 0, "width": 32, "height": 32 }
   ],
-  "metadata_url": "/output/spritesheet_uuid.json"
+  "metadata_url": "/output/spritesheet_uuid.json",
+  "animation_name": "walk_right",
+  "frame_width": 32,
+  "frame_height": 32,
+  "frame_count": 4,
+  "fps": 12
+}
+```
+
+**JSON 元数据文件内容：**
+
+```json
+{
+  "animation_name": "walk_right",
+  "frame_width": 32,
+  "frame_height": 32,
+  "frame_count": 4,
+  "columns": 4,
+  "rows": 1,
+  "fps": 12,
+  "spritesheet_size": [128, 32],
+  "animations": {
+    "walk_right": { "from": 0, "to": 3, "fps": 12 }
+  },
+  "frames": [
+    { "index": 0, "x": 0, "y": 0, "width": 32, "height": 32 }
+  ]
 }
 ```
 
