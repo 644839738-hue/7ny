@@ -9,7 +9,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Literal
+from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
 
@@ -99,3 +99,42 @@ class GenerateRequest(BaseModel):
     count: int = Field(default=4, ge=1, le=16)
     target_engine: EngineType = EngineType.UNITY
     transparent_background: bool = True
+
+
+# ---------------------------------------------------------------------------
+# Task
+# ---------------------------------------------------------------------------
+
+class TaskStatus(str, Enum):
+    PENDING = "pending"
+    GENERATING = "generating"
+    READY = "ready"
+    FAILED = "failed"
+
+
+class GeneratedAsset(BaseModel):
+    """A single asset produced by the generator."""
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str
+    type: AssetType
+    width: int
+    height: int
+    image_url: str
+    metadata: AssetMetadata = Field(default_factory=AssetMetadata)
+
+
+class GenerateResponse(BaseModel):
+    """Returned immediately after POST /api/generate."""
+    task_id: str
+    status: TaskStatus = TaskStatus.PENDING
+    message: str = "Task created"
+
+
+class TaskStatusResponse(BaseModel):
+    """Returned by GET /api/tasks/{task_id}."""
+    task_id: str
+    status: TaskStatus
+    progress: str = ""
+    assets: list[GeneratedAsset] = Field(default_factory=list)
+    created_at: Optional[datetime] = None
+    error: Optional[str] = None

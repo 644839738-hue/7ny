@@ -47,57 +47,116 @@
 
 ## 接口列表
 
-### 1. 生成素材
+### 1. 创建素材生成任务
 
 ```
 POST /api/generate
 ```
 
-生成 2D 游戏素材。DEMO 模式下返回内置样例素材。
+提交素材生成请求，立即返回任务 ID。通过 `GET /api/tasks/{task_id}` 轮询结果。
 
 **Request Body:**
 
 ```json
 {
-  "prompt": "a brave knight with sword",
+  "project_name": "my-game",
   "asset_type": "character",
+  "prompt": "a brave knight with sword",
+  "style": "pixel_art",
   "size": 32,
-  "style": "pixel",
-  "count": 4
+  "count": 4,
+  "target_engine": "unity",
+  "transparent_background": true
 }
 ```
 
 | 字段 | 类型 | 必填 | 说明 |
 |------|------|------|------|
+| project_name | string | 是 | 项目名称，1-100 字符 |
+| asset_type | string | 是 | 素材类型：`character` / `item` / `tile` / `ui` |
 | prompt | string | 是 | 文本描述，1-500 字符 |
-| asset_type | string | 是 | 素材类型：`character` / `prop` / `tile` / `ui` |
-| size | int | 是 | 像素尺寸：`32` 或 `64` |
-| style | string | 否 | 风格，默认 `pixel` |
-| count | int | 否 | 生成数量，默认 4，最大 16 |
+| style | string | 否 | 美术风格：`pixel_art` / `cartoon` / `dark_fantasy`，默认 `pixel_art` |
+| size | int | 否 | 像素尺寸：`32` / `64` / `128`，默认 `32` |
+| count | int | 否 | 生成数量，1-16，默认 `4` |
+| target_engine | string | 否 | 目标引擎：`unity` / `godot` / `generic`，默认 `unity` |
+| transparent_background | bool | 否 | 是否透明背景，默认 `true` |
 
 **Response (200):**
 
 ```json
 {
+  "task_id": "550e8400-e29b-41d4-a716-446655440000",
+  "status": "ready",
+  "message": "Task created"
+}
+```
+
+> **DEMO 模式**：任务同步完成，`status` 直接返回 `ready`。
+
+---
+
+### 2. 查询任务状态
+
+```
+GET /api/tasks/{task_id}
+```
+
+轮询任务进度，任务完成时返回生成的素材列表。
+
+**Response (200) — 进行中:**
+
+```json
+{
+  "task_id": "550e8400-...",
+  "status": "generating",
+  "progress": "2/4 assets generated",
+  "assets": [],
+  "created_at": "2026-05-23T10:30:00Z",
+  "error": null
+}
+```
+
+**Response (200) — 已完成:**
+
+```json
+{
+  "task_id": "550e8400-...",
+  "status": "ready",
+  "progress": "4/4 assets generated (demo)",
   "assets": [
     {
       "id": "uuid-1",
-      "asset_type": "character",
-      "size": 32,
-      "style": "pixel",
+      "name": "character_32x32_1",
+      "type": "character",
+      "width": 32,
+      "height": 32,
       "image_url": "/output/uuid-1.png",
-      "thumbnail_url": "/output/uuid-1_thumb.png",
-      "metadata": { "prompt": "...", "generated_at": "...", "generation_mode": "demo" }
+      "metadata": {
+        "prompt": "a brave knight with sword",
+        "generated_at": "2026-05-23T10:30:01Z",
+        "generation_mode": "demo"
+      }
     }
   ],
-  "total": 4,
-  "mode": "demo"
+  "created_at": "2026-05-23T10:30:00Z",
+  "error": null
+}
+```
+
+**Response (404):**
+
+```json
+{
+  "error": {
+    "code": "TASK_NOT_FOUND",
+    "message": "No task with id 'nonexistent'"
+  }
 }
 ```
 
 ---
 
-### 2. 素材后处理
+### 3. 素材后处理
 
 ```
 POST /api/process
@@ -132,7 +191,7 @@ POST /api/process
 
 ---
 
-### 3. Sprite Sheet 拼接
+### 4. Sprite Sheet 拼接
 
 ```
 POST /api/spritesheet
@@ -169,7 +228,7 @@ POST /api/spritesheet
 
 ---
 
-### 4. Tile 3×3 平铺预览
+### 5. Tile 3×3 平铺预览
 
 ```
 POST /api/tile/preview
@@ -197,7 +256,7 @@ POST /api/tile/preview
 
 ---
 
-### 5. Tile 边缘一致性评分
+### 6. Tile 边缘一致性评分
 
 ```
 POST /api/tile/score
@@ -241,7 +300,7 @@ POST /api/tile/score
 
 ---
 
-### 6. ZIP 导出
+### 7. ZIP 导出
 
 ```
 POST /api/export
@@ -314,7 +373,7 @@ spriteforge_export_20260523_103000.zip
 
 ---
 
-### 7. 列出已生成素材
+### 8. 列出已生成素材
 
 ```
 GET /api/assets

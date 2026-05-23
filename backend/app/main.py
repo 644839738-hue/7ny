@@ -8,9 +8,10 @@ Start with:
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.config import CORS_ORIGINS, DEMO_MODE, OUTPUT_DIR
-from app.routers import health
+from app.routers import generate, health
 
 # ---------------------------------------------------------------------------
 # App factory
@@ -41,6 +42,7 @@ app.add_middleware(
 # ---------------------------------------------------------------------------
 
 app.include_router(health.router)
+app.include_router(generate.router)
 
 # ---------------------------------------------------------------------------
 # Startup
@@ -52,6 +54,10 @@ def on_startup() -> None:
     import os
 
     os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+
+# Mount output so generated images are reachable via /output/<file>
+app.mount("/output", StaticFiles(directory=OUTPUT_DIR), name="output")
 
 
 # ---------------------------------------------------------------------------
