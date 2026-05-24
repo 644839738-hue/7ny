@@ -5,6 +5,7 @@ const NAV_ITEMS: { tab: NavTab; label: string; icon: string; path: string }[] = 
   { tab: 'dashboard',   label: 'Dashboard',         icon: '📊', path: '/' },
   { tab: 'settings',    label: '项目配置',            icon: '⚙️', path: '/settings' },
   { tab: 'generator',   label: '素材生成',            icon: '✨', path: '/generator' },
+  { tab: 'assets',      label: '素材库',              icon: '🖼️', path: '/assets' },
   { tab: 'spritesheet', label: 'Sprite Sheet',       icon: '🎞️', path: '/spritesheet' },
   { tab: 'tile',        label: 'Tile 预览',           icon: '🧱', path: '/tile' },
   { tab: 'export',      label: '导出',                icon: '📦', path: '/export' },

@@ -1,4 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import type { AssetType, ArtStyle, PixelSize, EngineType, GenerationProvider, GenerateParams, RuntimeConfig } from '../types';
+import { getProjectSettings } from '../utils/projectSettings';
 import type { AssetType, ArtStyle, EngineType, GenerateParams, GenerationProvider, PixelSize, RuntimeConfig } from '../types';
 import { generateAssets, getRuntimeConfig, getTask } from '../services/api';
 import { getProjectSettings } from '../utils/projectSettings';
@@ -416,6 +419,14 @@ export default function AssetGenerator() {
           <p className="text-xs text-gray-600">
             将此 Task ID 粘贴至 Sprite Sheet 工具、Tile 预览或导出页面，以加载已生成的素材。
           </p>
+          {generatedAssets.length > 0 && (
+            <Link
+              to="/assets"
+              className="inline-flex items-center gap-1.5 text-sm text-brand-400 hover:text-brand-300 transition-colors"
+            >
+              查看素材库 &rarr;
+            </Link>
+          )}
 
           {/* asset thumbnails */}
           {generatedAssets.length > 0 && (

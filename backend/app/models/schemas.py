@@ -281,3 +281,32 @@ class ExportResponse(BaseModel):
     package_structure: PackageStructure
     file_count: int
     total_size_bytes: int
+
+
+# ---------------------------------------------------------------------------
+# Asset history (SQLite persistence)
+# ---------------------------------------------------------------------------
+
+
+class AssetRecord(BaseModel):
+    """A single row from the generated_assets table."""
+    id: str
+    task_id: Optional[str] = None
+    project_name: str = ""
+    asset_type: str = ""
+    name: str = ""
+    prompt: str = ""
+    style: str = ""
+    size: int = 32
+    target_engine: str = ""
+    provider: str = ""
+    image_url: str = ""
+    local_path: str = ""
+    metadata: Optional[dict] = None
+    created_at: str = ""
+
+
+class AssetListResponse(BaseModel):
+    """Paginated response for GET /api/assets."""
+    items: list[AssetRecord] = Field(default_factory=list)
+    total: int = 0

@@ -15,13 +15,14 @@
 - [7. 项目结构](#7-项目结构)
 - [8. 本地运行方式](#8-本地运行方式)
 - [9. Demo 模式说明](#9-demo-模式说明)
-- [10. 环境变量说明](#10-环境变量说明)
-- [11. 第三方依赖与用途](#11-第三方依赖与用途)
-- [12. 原创功能说明](#12-原创功能说明)
-- [13. API 文档入口](#13-api-文档入口)
-- [14. Demo 视频链接](#14-demo-视频链接)
-- [15. PR 与 Commit 规范](#15-pr-与-commit-规范)
-- [16. 学术诚信与知识产权说明](#16-学术诚信与知识产权说明)
+- [10. 生成历史与素材库](#10-生成历史与素材库)
+- [11. 环境变量说明](#11-环境变量说明)
+- [12. 第三方依赖与用途](#12-第三方依赖与用途)
+- [13. 原创功能说明](#13-原创功能说明)
+- [14. API 文档入口](#14-api-文档入口)
+- [15. Demo 视频链接](#15-demo-视频链接)
+- [16. PR 与 Commit 规范](#16-pr-与-commit-规范)
+- [17. 学术诚信与知识产权说明](#17-学术诚信与知识产权说明)
 
 ---
 
@@ -175,8 +176,9 @@ spriteforge-ai/
 │   │   ├── main.py                   # 应用入口 + 路由注册
 │   │   ├── config.py                 # 环境变量配置
 │   │   ├── routers/
-│   │   │   ├── health.py             # GET /health
+│   │   │   ├── health.py             # GET /health, GET /api/runtime-config
 │   │   │   ├── generate.py           # POST /api/generate
+│   │   │   ├── assets.py             # GET/DELETE /api/assets
 │   │   │   ├── process.py            # POST /api/process
 │   │   │   ├── spritesheet.py        # POST /api/spritesheet
 │   │   │   ├── tile.py               # POST /api/tile/preview + /tile/score
@@ -184,6 +186,9 @@ spriteforge-ai/
 │   │   ├── services/
 │   │   │   ├── generator.py          # 任务调度
 │   │   │   ├── image_generation_service.py  # AI Provider 抽象层
+│   │   │   ├── wanxiang_image_provider.py   # 通义万相 Provider
+│   │   │   ├── provider_base.py      # Provider 抽象基类
+│   │   │   ├── asset_repository.py   # SQLite 素材持久化
 │   │   │   ├── processor.py          # 后处理服务
 │   │   │   ├── spritesheet.py        # Sprite Sheet 拼接
 │   │   │   ├── tile.py               # Tile 3×3 预览
@@ -199,8 +204,11 @@ spriteforge-ai/
 │   │   ├── test_spritesheet.py       # 6 tests
 │   │   ├── test_tile.py              # 5 tests
 │   │   ├── test_tile_score.py        # 8 tests
-│   │   └── test_export.py            # 8 tests
+│   │   ├── test_export.py            # 8 tests
+│   │   ├── test_asset_repository.py  # 12 tests
+│   │   └── test_assets_api.py        # 8 tests
 │   ├── output/                       # 运行时输出目录（.gitignore）
+│   ├── data/                         # SQLite 数据库（.gitignore）
 │   └── requirements.txt
 ├── docs/
 │   ├── prd.md                        # 产品需求文档
@@ -263,7 +271,7 @@ npm run dev
 ### 4) 运行测试
 
 ```bash
-# 后端测试（44 个）
+# 后端测试（64 个）
 cd backend
 python -m pytest tests/ -v
 
@@ -330,7 +338,40 @@ DEMO_MODE=false + IMAGE_PROVIDER=wanxiang
 
 ---
 
-## 10. 环境变量说明
+## 10. 生成历史与素材库
+
+后端使用 SQLite 保存生成过的素材记录，便于查看历史生成结果。
+
+### 数据库位置
+
+- 数据库文件：`backend/data/spriteforge.db`
+- 该文件在 `.gitignore` 中排除，**不提交到 Git**
+- 数据库在首次启动时自动创建（通过 `main.py` 的 startup event）
+
+### 数据内容
+
+每次素材生成成功后，每条生成的 asset 会被写入 `generated_assets` 表，包含：
+
+- 素材 ID、任务 ID、项目名称、素材类型
+- Prompt、风格、尺寸、目标引擎
+- 使用的 AI Provider
+- 图片 URL、元数据 JSON
+
+### 前端查询
+
+前端素材库页面可以通过 `/api/assets` 查询历史素材：
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| `GET` | `/api/assets` | 列出历史素材（支持 `asset_type` / `project_name` 筛选，支持分页） |
+| `GET` | `/api/assets/{id}` | 查询单个素材详情 |
+| `DELETE` | `/api/assets/{id}` | 删除历史记录 |
+
+> **注意**：删除 API 仅删除数据库记录，**不删除图片文件**。如需释放磁盘空间，请手动清理 `backend/output/` 和 `backend/data/` 目录。
+
+---
+
+## 11. 环境变量说明
 
 ### 后端环境变量
 
@@ -360,7 +401,7 @@ cp backend/.env.example backend/.env
 
 ---
 
-## 11. 第三方依赖与用途
+## 12. 第三方依赖与用途
 
 ### 后端依赖（Python）
 
@@ -372,6 +413,8 @@ cp backend/.env.example backend/.env
 | [Pillow](https://github.com/python-pillow/Pillow) | ^10.0 | 图像处理：透明背景、裁剪、缩放、拼接、RGB 边缘检测 | HPND |
 | [python-multipart](https://github.com/Kludex/python-multipart) | ^0.0.9 | 文件上传解析（FastAPI 依赖） | Apache 2.0 |
 | [requests](https://github.com/psf/requests) | ^2.31 | HTTP 客户端，调用 DashScope API | Apache 2.0 |
+
+（注：数据库使用 Python 标准库 sqlite3，无需额外依赖）
 
 ### 后端测试依赖
 
@@ -401,7 +444,7 @@ cp backend/.env.example backend/.env
 
 ---
 
-## 12. 原创功能说明
+## 13. 原创功能说明
 
 ### 重要声明
 
@@ -430,7 +473,7 @@ cp backend/.env.example backend/.env
 
 ---
 
-## 13. API 文档入口
+## 14. API 文档入口
 
 ### 端点总览
 
@@ -452,7 +495,7 @@ cp backend/.env.example backend/.env
 
 ---
 
-## 14. Demo 视频链接
+## 15. Demo 视频链接
 
 > **待录制** — 视频链接占位
 
@@ -496,7 +539,7 @@ examples/sample-export/
 
 ---
 
-## 15. PR 与 Commit 规范
+## 16. PR 与 Commit 规范
 
 ### Commit Message 格式
 
@@ -536,13 +579,13 @@ docs(readme): add third-party dependency declarations
 
 ---
 
-## 16. 学术诚信与知识产权说明
+## 17. 学术诚信与知识产权说明
 
 ### 代码原创性
 
 - 本项目所有代码（前端组件、后端服务、图像处理算法、测试用例）均为手工编写
 - 未直接复制任何开源项目的完整文件或模块
-- 使用的第三方库均通过包管理器（npm / pip）标准方式引入，并在 [§11](#11-第三方依赖与用途) 中逐一列出版本、用途和许可证
+- 使用的第三方库均通过包管理器（npm / pip）标准方式引入，并在 [§12](#12-第三方依赖与用途) 中逐一列出版本、用途和许可证
 
 ### AI 生成能力说明
 
@@ -561,7 +604,7 @@ docs(readme): add third-party dependency declarations
 
 ### 第三方库许可证合规
 
-所有第三方依赖均为 MIT、BSD、Apache 2.0 或 HPND 等宽松许可证，允许在竞赛项目中自由使用。完整列表见 [§11](#11-第三方依赖与用途)。
+所有第三方依赖均为 MIT、BSD、Apache 2.0 或 HPND 等宽松许可证，允许在竞赛项目中自由使用。完整列表见 [§12](#12-第三方依赖与用途)。
 
 ### 参考资料
 
