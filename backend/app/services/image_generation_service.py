@@ -13,9 +13,9 @@ changing any orchestration code.
 
 ## Fallback behaviour
 
-When ``DEMO_MODE`` is *off* and the external provider raises, the service
-automatically falls back to the demo provider and includes a warning in the
-returned assets' metadata.
+When ``ALLOW_DEMO_FALLBACK`` is true and a non-demo provider raises, the
+service automatically falls back to the demo provider and includes a warning
+in the returned assets' metadata.
 """
 
 from __future__ import annotations
@@ -29,7 +29,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
-from app.config import DEMO_MODE, OUTPUT_DIR
+from app.config import ALLOW_DEMO_FALLBACK, DEMO_MODE, IMAGE_PROVIDER, OUTPUT_DIR
 from app.models.schemas import (
     AssetMetadata,
     GeneratedAsset,
@@ -39,16 +39,19 @@ from app.utils.demo_provider import resolve_sample_path
 
 logger = logging.getLogger(__name__)
 
+# Lazy import for Wanxiang (pulls in requests/dashscope)
+try:
+    from app.services.wanxiang_image_provider import WanxiangImageProvider  # noqa: F811
+    _WANXIANG_AVAILABLE = True
+except ImportError:
+    _WANXIANG_AVAILABLE = False
+
 
 # ---------------------------------------------------------------------------
 # Shared helpers
 # ---------------------------------------------------------------------------
 
 def _copy_to_output(source_path: str, asset_id: str) -> str:
-    """Copy *source_path* into OUTPUT_DIR using *asset_id* as the filename.
-
-    Returns the public ``/output/<name>`` URL path.
-    """
     ext = os.path.splitext(source_path)[1] or ".png"
     dest_name = f"{asset_id}{ext}"
     dest = Path(OUTPUT_DIR) / dest_name
@@ -63,7 +66,6 @@ def _build_assets(
     generation_mode: str,
     warning: Optional[str] = None,
 ) -> list[GeneratedAsset]:
-    """Build *count* ``GeneratedAsset`` objects from a single sample image."""
     assets: list[GeneratedAsset] = []
     meta_kwargs: dict = {
         "prompt": req.prompt,
@@ -71,7 +73,7 @@ def _build_assets(
         "generation_mode": generation_mode,
     }
     if warning:
-        meta_kwargs["warning"] = warning  # type: ignore[assignment]
+        meta_kwargs["warning"] = warning
 
     for i in range(req.count):
         asset_id = str(uuid.uuid4())
@@ -100,22 +102,19 @@ class ImageGenerationProvider(ABC):
 
     @abstractmethod
     def generate(self, req: GenerateRequest) -> list[GeneratedAsset]:
-        """Produce *req.count* assets for the given request."""
         ...
 
     @property
     @abstractmethod
     def provider_name(self) -> str:
-        """Human-readable provider identifier (e.g. ``"demo"``, ``"openai"``)."""
         ...
 
 
 # ---------------------------------------------------------------------------
-# Demo provider (always available)
+# Demo provider
 # ---------------------------------------------------------------------------
 
 class DemoImageProvider(ImageGenerationProvider):
-    """Returns pre-built sample assets from ``examples/sample-assets/``."""
 
     @property
     def provider_name(self) -> str:
@@ -132,20 +131,10 @@ class DemoImageProvider(ImageGenerationProvider):
 
 
 # ---------------------------------------------------------------------------
-# External AI provider (stub — real implementation in a future PR)
+# External AI provider (stub)
 # ---------------------------------------------------------------------------
 
 class ExternalImageProvider(ImageGenerationProvider):
-    """Calls an external image-generation API.
-
-    The API endpoint and key are read from the environment:
-
-    * ``IMAGE_API_BASE_URL`` — base URL of the generation API
-    * ``IMAGE_API_KEY`` — bearer token or API key
-
-    If either is missing the provider raises ``RuntimeError`` on the first
-    ``generate()`` call, which triggers the automatic demo fallback.
-    """
 
     def __init__(self) -> None:
         self._base_url = os.getenv("IMAGE_API_BASE_URL", "").strip()
@@ -156,56 +145,49 @@ class ExternalImageProvider(ImageGenerationProvider):
         return "external"
 
     def generate(self, req: GenerateRequest) -> list[GeneratedAsset]:
-        """Attempt external generation; raise if not configured.
-
-        .. note::
-           This is a **stub**.  Replace the ``NotImplementedError`` with a
-           real HTTP call (e.g. ``httpx`` / ``requests``) to an image API
-           such as OpenAI DALL·E, Stability AI, or a self-hosted model.
-        """
         if not self._base_url or not self._api_key:
             raise RuntimeError(
                 "External image API is not configured. "
-                "Set IMAGE_API_BASE_URL and IMAGE_API_KEY environment variables, "
-                "or enable DEMO_MODE=true."
+                "Set IMAGE_API_BASE_URL and IMAGE_API_KEY environment variables."
             )
-
-        # ------------------------------------------------------------------
-        # STUB — replace with real API call
-        # ------------------------------------------------------------------
-        # import httpx
-        # async with httpx.AsyncClient() as client:
-        #     resp = await client.post(
-        #         f"{self._base_url}/v1/images/generate",
-        #         headers={"Authorization": f"Bearer {self._api_key}"},
-        #         json={...},
-        #     )
-        #     resp.raise_for_status()
-        #     ...
-        # ------------------------------------------------------------------
-
         raise NotImplementedError(
-            "ExternalImageProvider.generate() is a stub.  "
-            "Implement the API call for your chosen image-generation backend."
+            "ExternalImageProvider.generate() is a stub."
         )
 
 
 # ---------------------------------------------------------------------------
-# Provider factory (decides which backend to use)
+# Provider factory
 # ---------------------------------------------------------------------------
 
-def _create_provider() -> ImageGenerationProvider:
-    """Return the appropriate provider based on ``DEMO_MODE``."""
-    if DEMO_MODE:
-        logger.info("Image generation: using DEMO provider")
+def _create_provider(generation_provider: str = "auto") -> ImageGenerationProvider:
+    """Return the appropriate provider based on request choice and env config."""
+
+    if generation_provider == "demo":
+        logger.info("Image generation: DEMO provider (request-level)")
         return DemoImageProvider()
+
+    if generation_provider == "wanxiang":
+        if not _WANXIANG_AVAILABLE:
+            logger.warning("Wanxiang provider unavailable (import failed), falling back to demo")
+            return DemoImageProvider()
+        logger.info("Image generation: WANXIANG provider (request-level)")
+        return WanxiangImageProvider()
+
+    # "auto" — follow environment config
+    if DEMO_MODE:
+        logger.info("Image generation: DEMO provider (env default)")
+        return DemoImageProvider()
+
+    if IMAGE_PROVIDER == "wanxiang" and _WANXIANG_AVAILABLE:
+        logger.info("Image generation: WANXIANG provider (env default)")
+        return WanxiangImageProvider()
 
     logger.info("Image generation: using EXTERNAL provider")
     return ExternalImageProvider()
 
 
 # ---------------------------------------------------------------------------
-# Top-level API used by the generator orchestrator
+# Top-level API
 # ---------------------------------------------------------------------------
 
 class ImageGenerationResult:
@@ -225,12 +207,9 @@ class ImageGenerationResult:
 
 
 def generate_assets(req: GenerateRequest) -> ImageGenerationResult:
-    """Run generation with automatic demo-fallback on failure.
+    """Run generation with automatic demo-fallback on failure."""
 
-    *Always* returns assets — if the external provider fails and
-    ``DEMO_MODE`` is off, the demo provider is used as a safety net.
-    """
-    provider = _create_provider()
+    provider = _create_provider(req.generation_provider)
 
     try:
         assets = provider.generate(req)
@@ -240,17 +219,21 @@ def generate_assets(req: GenerateRequest) -> ImageGenerationResult:
         )
     except Exception as exc:
         if provider.provider_name == "demo":
-            raise  # demo itself failed — nothing left to fall back to
+            raise
 
         logger.warning(
-            "External generation failed (%s), falling back to demo provider",
+            "%s generation failed (%s), falling back to demo provider",
+            provider.provider_name,
             exc,
         )
+
+        if not ALLOW_DEMO_FALLBACK:
+            raise
+
         fallback = DemoImageProvider()
         warning_msg = (
-            f"External generation failed: {exc}. "
-            f"Falling back to demo assets. "
-            f"Set IMAGE_API_BASE_URL and IMAGE_API_KEY to use real AI generation."
+            f"{provider.provider_name} generation failed: {exc}. "
+            f"Falling back to demo assets."
         )
         assets = fallback.generate(req)
         return ImageGenerationResult(

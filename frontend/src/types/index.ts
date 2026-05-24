@@ -10,6 +10,9 @@ export type PixelSize = 32 | 64 | 128;
 /** Target game engine for export */
 export type EngineType = 'unity' | 'godot' | 'generic';
 
+/** Generation provider choice */
+export type GenerationProvider = 'auto' | 'demo' | 'wanxiang';
+
 /** Generation request parameters */
 export interface GenerateParams {
   projectName: string;
@@ -20,6 +23,27 @@ export interface GenerateParams {
   count: number;
   targetEngine: EngineType;
   transparentBackground: boolean;
+  generationProvider: GenerationProvider;
+}
+
+/** Project settings persisted to localStorage */
+export interface ProjectSettings {
+  projectName: string;
+  defaultAssetType: AssetType;
+  defaultStyle: ArtStyle;
+  defaultSize: PixelSize;
+  defaultCount: number;
+  defaultTargetEngine: EngineType;
+  transparentBackground: boolean;
+  generationProvider: GenerationProvider;
+}
+
+/** Runtime config from GET /api/runtime-config */
+export interface RuntimeConfig {
+  demo_mode: boolean;
+  image_provider: string;
+  ai_enabled: boolean;
+  provider_label: string;
 }
 
 /** A single generated asset */

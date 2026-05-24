@@ -243,13 +243,13 @@ cd spriteforge-ai
 ```bash
 cd backend
 pip install -r requirements.txt
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8001
 ```
 
 后端启动后：
-- API 服务：`http://localhost:8000`
-- Swagger 文档：`http://localhost:8000/docs`
-- 健康检查：`http://localhost:8000/health`
+- API 服务：`http://localhost:8001`
+- Swagger 文档：`http://localhost:8001/docs`
+- 健康检查：`http://localhost:8001/health`
 
 ### 3) 启动前端
 
@@ -261,7 +261,7 @@ npm run dev
 
 前端启动后访问 `http://localhost:5173`。
 
-Vite 开发服务器已配置代理，`/api` 和 `/output` 请求自动转发到 `http://localhost:8000`。
+Vite 开发服务器已配置代理，`/api` 和 `/output` 请求自动转发到 `http://localhost:8001`。
 
 ### 4) 运行测试
 
@@ -286,23 +286,61 @@ Demo 模式是 SpriteForge AI 的核心架构特性——**无需任何外部 AI
 ```
 DEMO_MODE=true (默认)
     │
-    ├── 前端: VITE_DEMO_MODE=true
-    │   └── 页面顶部显示 "DEMO" 标记
+    ├── 前端: 从 GET /api/runtime-config 读取后端真实运行模式
+    │   └── AssetGenerator 页面顶部显示 Provider 状态标记（Demo 内置素材 / 通义万相 AI 生成）
     │
-    └── 后端: SPRITEFORGE_DEMO_MODE=true
+    └── 后端: SPRITEFORGE_DEMO_MODE=true (或 DEMO_MODE=true)
         └── DemoImageProvider 使用 examples/sample-assets/ 下内置素材
             ├── character_32.png, character_64.png
             ├── item_32.png, item_64.png
             ├── tile_32.png, tile_64.png
             └── ui_32.png, ui_64.png
+
+DEMO_MODE=false + IMAGE_PROVIDER=wanxiang + DASHSCOPE_API_KEY=xxx
+    │
+    └── 后端: 调用 DashScope 通义万相 API 生成真实游戏素材
+        └── 失败时自动回退到 Demo Provider（需 ALLOW_DEMO_FALLBACK=true）
 ```
+
+### 启用通义万相 AI 生成
+
+```bash
+# 1. 复制环境变量模板
+cp backend/.env.example backend/.env
+
+# 2. 编辑 backend/.env，填入阿里云 DashScope API Key
+#    DASHSCOPE_API_KEY=sk-xxxxxxxxxxxxxxxx
+
+# 3. 重启后端
+cd backend
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8001
+```
+
+### 前端请求级 Provider 选择
+
+前端 AssetGenerator 页面提供三个生成后端选项：
+
+| 选项 | 行为 |
+|------|------|
+| **Auto** | 跟随后端 .env 配置自动选择 |
+| **Demo** | 强制使用内置样例素材（不调用任何 AI API） |
+| **通义万相** | 强制使用 DashScope 通义万相 AI 生成 |
+
+用户可在素材生成页实时切换，或在项目配置页设置默认值。
+
+### 动态项目配置
+
+项目配置页（Project Settings）允许用户自定义默认生成参数，包括项目名称、素材类型、美术风格、像素尺寸、生成数量、目标引擎、透明背景、生成后端。配置保存在浏览器的 localStorage 中，无需后端存储。
+
+素材生成页在加载时自动读取项目配置中的默认值作为表单初始值。
 
 ### 关键设计
 
 - 内置样例素材覆盖全部四种类型 + 三种尺寸
-- DemoImageProvider 输出数据结构与 ExternalImageProvider 完全一致
+- DemoImageProvider 输出数据结构与 WanxiangImageProvider 完全一致
 - 上层服务无感知，切换 Provider 无需修改业务代码
 - 外部 AI 调用失败时**自动回退**到 Demo Provider，保证流程不中断
+- 支持请求级 Provider 选择，前端可覆盖后端默认配置
 
 ### Demo 模式下的完整流程验证
 
@@ -321,31 +359,35 @@ DEMO_MODE=true (默认)
 
 | 变量 | 默认值 | 必填 | 说明 |
 |------|--------|------|------|
-| `SPRITEFORGE_DEMO_MODE` | `true` | 否 | `true`=使用内置样例素材；`false`=调用外部 AI API |
+| `DEMO_MODE` | `true` | 否 | `true`=使用内置样例素材；`false`=调用 AI API |
+| `SPRITEFORGE_DEMO_MODE` | `true` | 否 | 兼容别名，与 `DEMO_MODE` 等价 |
+| `IMAGE_PROVIDER` | `demo` | 否 | 默认 Provider：`demo` / `wanxiang` |
+| `DASHSCOPE_API_KEY` | (空) | 仅 Wanxiang | 阿里云 DashScope API Key |
+| `WANXIANG_MODEL` | `wanx-v1` | 否 | 通义万相模型版本 |
+| `WANXIANG_SIZE` | `1024*1024` | 否 | 生成图像尺寸 |
+| `WANXIANG_N` | `1` | 否 | 单次 API 调用生成数量 |
+| `ALLOW_DEMO_FALLBACK` | `true` | 否 | AI 生成失败时自动回退 Demo |
 | `IMAGE_API_KEY` | (空) | 仅非 Demo | 外部图像生成 API 的 Key / Token |
 | `IMAGE_API_BASE_URL` | (空) | 仅非 Demo | 外部图像生成 API 的基础 URL |
 | `SPRITEFORGE_HOST` | `0.0.0.0` | 否 | 后端绑定地址 |
-| `SPRITEFORGE_PORT` | `8000` | 否 | 后端绑定端口 |
-
-### 前端环境变量
-
-| 变量 | 默认值 | 必填 | 说明 |
-|------|--------|------|------|
-| `VITE_DEMO_MODE` | `true` | 否 | `true`=UI 显示 Demo 标记；`false`=隐藏 |
+| `SPRITEFORGE_PORT` | `8001` | 否 | 后端绑定端口 |
 
 ### 设置方式
 
 ```bash
+# 推荐：复制模板后编辑
+cp backend/.env.example backend/.env
+# 编辑 backend/.env 填入你的 API Key
+
+# 或直接设置环境变量
 # Linux / macOS
-export SPRITEFORGE_DEMO_MODE=true
+export DASHSCOPE_API_KEY=sk-xxxxxxxxxxxxxxxx
 
 # Windows PowerShell
-$env:SPRITEFORGE_DEMO_MODE = "true"
-
-# 或创建 .env 文件（已在 .gitignore 中排除）
+$env:DASHSCOPE_API_KEY = "sk-xxxxxxxxxxxxxxxx"
 ```
 
-> **安全警告**：切勿将 `IMAGE_API_KEY` 写入代码或提交到版本控制。
+> **安全警告**：切勿将 `DASHSCOPE_API_KEY` 写入代码或提交到版本控制。`backend/.env` 已在 `.gitignore` 中排除。
 
 ---
 
@@ -360,6 +402,9 @@ $env:SPRITEFORGE_DEMO_MODE = "true"
 | [Pydantic](https://github.com/pydantic/pydantic) | ^2.7 | 请求/响应数据校验与序列化 | MIT |
 | [Pillow](https://github.com/python-pillow/Pillow) | ^10.0 | 图像处理：透明背景、裁剪、缩放、拼接、RGB 边缘检测 | HPND |
 | [python-multipart](https://github.com/Kludex/python-multipart) | ^0.0.9 | 文件上传解析（FastAPI 依赖） | Apache 2.0 |
+| [python-dotenv](https://github.com/theskumar/python-dotenv) | ^1.0 | 从 .env 文件加载环境变量 | BSD |
+| [requests](https://github.com/psf/requests) | ^2.31 | HTTP 客户端（调用 DashScope API） | Apache 2.0 |
+| [dashscope](https://github.com/aliyun/dashscope-sdk) | ^1.0 | 阿里云 DashScope SDK | Apache 2.0 |
 
 ### 后端测试依赖
 
@@ -435,6 +480,7 @@ $env:SPRITEFORGE_DEMO_MODE = "true"
 | 方法 | 路径 | 说明 |
 |------|------|------|
 | `GET` | `/health` | 健康检查 |
+| `GET` | `/api/runtime-config` | 返回后端实际 Provider 状态与模式 |
 | `POST` | `/api/generate` | 创建素材生成任务 |
 | `GET` | `/api/tasks/{task_id}` | 查询任务状态与结果 |
 | `POST` | `/api/process` | 素材后处理（透明/裁剪/标准化） |

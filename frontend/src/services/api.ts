@@ -1,4 +1,4 @@
-import type { ExportRequest, ExportResult, GenerateParams, SpriteSheet, SpriteSheetRequest, TilePreview, TilePreviewRequest, TileScore, TileScoreRequest } from '../types';
+import type { ExportRequest, ExportResult, GenerateParams, RuntimeConfig, SpriteSheet, SpriteSheetRequest, TilePreview, TilePreviewRequest, TileScore, TileScoreRequest } from '../types';
 import { API_BASE } from '../config/demo';
 
 async function request<T>(url: string, options?: RequestInit): Promise<T> {
@@ -11,6 +11,11 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
     throw new Error(body?.error?.message || `HTTP ${resp.status}`);
   }
   return resp.json();
+}
+
+/** Fetch the backend runtime config (provider status, mode, etc.). */
+export function getRuntimeConfig() {
+  return request<RuntimeConfig>('/runtime-config');
 }
 
 /** Submit a generation request, returns { task_id, status }. */
@@ -26,6 +31,7 @@ export function generateAssets(params: GenerateParams) {
       count: params.count,
       target_engine: params.targetEngine,
       transparent_background: params.transparentBackground,
+      generation_provider: params.generationProvider,
     }),
   });
 }
@@ -74,7 +80,7 @@ export function checkTileScore(params: TileScoreRequest) {
   });
 }
 
-/** Build a 3×3 tiling preview for a tile asset. */
+/** Build a 3x3 tiling preview for a tile asset. */
 export function buildTilePreview(params: TilePreviewRequest) {
   return request<TilePreview>('/tile/preview', {
     method: 'POST',
