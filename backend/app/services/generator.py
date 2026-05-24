@@ -13,6 +13,7 @@ lives in :class:`image_generation_service.ImageGenerationProvider`.
 
 from __future__ import annotations
 
+import logging
 import uuid
 from datetime import datetime, timezone
 from typing import Optional
@@ -23,6 +24,8 @@ from app.models.schemas import (
     TaskStatus,
 )
 from app.services.image_generation_service import generate_assets
+
+logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -85,4 +88,24 @@ def run_generation(req: GenerateRequest) -> str:
     if result.fallback_occurred and result.warning:
         task["warning"] = result.warning
 
+    # Persist assets to SQLite (best-effort; failure must not fail the task)
+    _save_assets_to_db(result.assets, req, task_id)
+
     return task_id
+
+
+def _save_assets_to_db(
+    assets: list[GeneratedAsset],
+    req: GenerateRequest,
+    task_id: str,
+) -> None:
+    """Best-effort persistence of generated assets to SQLite."""
+    try:
+        from app.services.asset_repository import save_generated_asset
+
+        for asset in assets:
+            save_generated_asset(asset, req, task_id)
+    except Exception:
+        logger.warning(
+            "Failed to persist assets for task %s to SQLite", task_id, exc_info=True
+        )
