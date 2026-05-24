@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import type { AssetType, ArtStyle, PixelSize, EngineType, GenerationProvider, GenerateParams, RuntimeConfig } from '../types';
 import { getProjectSettings } from '../utils/projectSettings';
 import { generateAssets, getRuntimeConfig, getTask } from '../services/api';
+import { getGenerationModeLabel, getGenerationModeTone, getGenerationModeBadgeClass } from '../utils/generationMode';
 
 // --- option definitions ---------------------------------------------------
 
@@ -137,14 +138,10 @@ export default function AssetGenerator() {
             重新载入项目配置
           </button>
           {runtimeConfig && (
-            <span className={`text-xs px-2.5 py-1 rounded-full border ${
-              runtimeConfig.demo_mode
-                ? 'bg-amber-900/60 text-amber-300 border-amber-700'
-                : runtimeConfig.wanxiang_configured
-                  ? 'bg-green-900/60 text-green-300 border-green-700'
-                  : 'bg-blue-900/60 text-blue-300 border-blue-700'
+            <span className={`text-xs px-2.5 py-1 rounded-full border font-medium ${
+              getGenerationModeBadgeClass(getGenerationModeTone(generationProvider, runtimeConfig))
             }`}>
-              {runtimeConfig.provider_label}{runtimeConfig.wanxiang_configured ? ' (已配置)' : ''}
+              {getGenerationModeLabel(generationProvider, runtimeConfig)}
             </span>
           )}
         </div>
@@ -320,6 +317,14 @@ export default function AssetGenerator() {
               </button>
             ))}
           </div>
+          <p className="text-[11px] text-gray-500 mt-2">
+            后端默认模式来自 .env；本次生成会优先使用当前表单选择的模式。
+          </p>
+          {generationProvider === 'wanxiang' && runtimeConfig && !runtimeConfig.wanxiang_configured && (
+            <p className="text-xs text-amber-400 mt-1">
+              后端未检测到 DASHSCOPE_API_KEY，可能会失败或回退到 Demo。
+            </p>
+          )}
         </div>
 
         {/* transparentBackground */}
