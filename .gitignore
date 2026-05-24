@@ -41,6 +41,11 @@ npm-debug.log*
 backend/output/
 backend/uploads/
 
+# SQLite databases
+backend/data/*.db
+backend/data/*.sqlite
+backend/data/*.sqlite3
+
 # Testing
 coverage/
 .coverage

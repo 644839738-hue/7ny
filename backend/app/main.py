@@ -11,7 +11,7 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.config import CORS_ORIGINS, DEMO_MODE, GENERATED_DIR, OUTPUT_DIR
-from app.routers import export, generate, health, process, spritesheet, tile
+from app.routers import assets, export, generate, health, process, spritesheet, tile
 
 # ---------------------------------------------------------------------------
 # App factory
@@ -47,6 +47,7 @@ app.include_router(process.router)
 app.include_router(spritesheet.router)
 app.include_router(tile.router)
 app.include_router(export.router)
+app.include_router(assets.router)
 
 # ---------------------------------------------------------------------------
 # Startup
@@ -54,11 +55,14 @@ app.include_router(export.router)
 
 @app.on_event("startup")
 def on_startup() -> None:
-    """Ensure runtime directories exist."""
+    """Ensure runtime directories and database exist."""
     import os
 
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     os.makedirs(GENERATED_DIR, exist_ok=True)
+
+    from app.services.asset_repository import init_db
+    init_db()
 
 
 # Mount output so generated images are reachable via /output/<file>
