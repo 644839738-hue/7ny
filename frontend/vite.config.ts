@@ -6,8 +6,8 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      '/api': 'http://localhost:8001',
-      '/output': 'http://localhost:8001',
+      '/api': 'http://127.0.0.1:8001',
+      '/output': 'http://127.0.0.1:8001',
     },
   },
 });

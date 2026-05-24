@@ -1,53 +1,64 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { ArtStyle, AssetType, EngineType, GenerationProvider, PixelSize, ProjectSettings } from '../types';
 import { getProjectSettings, resetProjectSettings, saveProjectSettings } from '../utils/projectSettings';
 
-// --- option defs ----------------------------------------------------------
-
 const ASSET_TYPE_OPTIONS: { key: AssetType; label: string }[] = [
   { key: 'character', label: '角色 (Character)' },
-  { key: 'item',      label: '道具 (Item)' },
-  { key: 'tile',      label: 'Tile' },
-  { key: 'ui',        label: 'UI' },
+  { key: 'item', label: '道具 (Item)' },
+  { key: 'tile', label: 'Tile' },
+  { key: 'ui', label: 'UI' },
 ];
 
 const STYLE_OPTIONS: { key: ArtStyle; label: string }[] = [
-  { key: 'pixel_art',    label: '像素风' },
-  { key: 'cartoon',      label: '卡通' },
-  { key: 'dark_fantasy', label: '暗黑幻想' },
+  { key: 'pixel_art', label: '像素风 (Pixel Art)' },
+  { key: 'cartoon', label: '卡通 (Cartoon)' },
+  { key: 'dark_fantasy', label: '暗黑幻想 (Dark Fantasy)' },
 ];
 
 const SIZE_OPTIONS: PixelSize[] = [32, 64, 128];
 
+const COUNT_OPTIONS: (1 | 4 | 8)[] = [1, 4, 8];
+
 const ENGINE_OPTIONS: { key: EngineType; label: string }[] = [
-  { key: 'unity',   label: 'Unity' },
-  { key: 'godot',   label: 'Godot' },
-  { key: 'generic', label: '通用' },
+  { key: 'unity', label: 'Unity' },
+  { key: 'godot', label: 'Godot' },
+  { key: 'generic', label: '通用 (Generic)' },
 ];
 
 const PROVIDER_OPTIONS: { key: GenerationProvider; label: string; desc: string }[] = [
-  { key: 'auto',     label: 'Auto',      desc: '跟随后端配置' },
-  { key: 'demo',     label: 'Demo',      desc: '内置素材' },
-  { key: 'wanxiang', label: '通义万相',   desc: 'AI 生成' },
+  { key: 'auto', label: 'Auto', desc: '跟随后端配置' },
+  { key: 'demo', label: 'Demo', desc: '内置素材' },
+  { key: 'wanxiang', label: '通义万相', desc: 'AI 生成' },
 ];
 
-// --- component ------------------------------------------------------------
-
-export default function ProjectSettings() {
+export default function ProjectSettingsPage() {
   const [settings, setSettings] = useState<ProjectSettings>(getProjectSettings);
   const [saved, setSaved] = useState(false);
+  const [reset, setReset] = useState(false);
+
+  useEffect(() => {
+    if (saved) {
+      const t = setTimeout(() => setSaved(false), 3000);
+      return () => clearTimeout(t);
+    }
+  }, [saved]);
+
+  useEffect(() => {
+    if (reset) {
+      const t = setTimeout(() => setReset(false), 3000);
+      return () => clearTimeout(t);
+    }
+  }, [reset]);
 
   const handleSave = useCallback(() => {
     saveProjectSettings(settings);
     setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
   }, [settings]);
 
   const handleReset = useCallback(() => {
     const defaults = resetProjectSettings();
     setSettings(defaults);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    setReset(true);
   }, []);
 
   const update = <K extends keyof ProjectSettings>(key: K, value: ProjectSettings[K]) => {
@@ -58,16 +69,16 @@ export default function ProjectSettings() {
     <div className="max-w-2xl mx-auto space-y-8">
       <h2 className="text-2xl font-bold">项目配置</h2>
 
-      {/* ---- Generation defaults ---- */}
-      <section className="card space-y-4">
+      {/* ---- default params ---- */}
+      <section className="card space-y-5">
         <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">
-          生成默认参数
+          默认生成参数
         </h3>
 
         {/* projectName */}
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-1.5">
-            默认项目名称
+            项目名称
           </label>
           <input
             type="text"
@@ -77,90 +88,126 @@ export default function ProjectSettings() {
           />
         </div>
 
-        {/* assetType */}
+        {/* defaultAssetType */}
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-2">
             默认素材类型
           </label>
-          <select
-            className="input-field"
-            value={settings.defaultAssetType}
-            onChange={(e) => update('defaultAssetType', e.target.value as AssetType)}
-          >
+          <div className="grid grid-cols-4 gap-2">
             {ASSET_TYPE_OPTIONS.map(({ key, label }) => (
-              <option key={key} value={key}>{label}</option>
+              <button
+                key={key}
+                type="button"
+                onClick={() => update('defaultAssetType', key)}
+                className={`p-3 rounded-lg border text-center transition-all duration-150 text-xs font-medium ${
+                  settings.defaultAssetType === key
+                    ? 'border-brand-500 bg-brand-600/20 text-brand-300'
+                    : 'border-gray-700/80 bg-gray-800/40 text-gray-400 hover:border-gray-600 hover:bg-gray-800/60'
+                }`}
+              >
+                {label}
+              </button>
             ))}
-          </select>
+          </div>
         </div>
 
-        {/* style */}
+        {/* defaultStyle */}
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-2">
             默认美术风格
           </label>
-          <select
-            className="input-field"
-            value={settings.defaultStyle}
-            onChange={(e) => update('defaultStyle', e.target.value as ArtStyle)}
-          >
+          <div className="flex gap-2">
             {STYLE_OPTIONS.map(({ key, label }) => (
-              <option key={key} value={key}>{label}</option>
+              <button
+                key={key}
+                type="button"
+                onClick={() => update('defaultStyle', key)}
+                className={`flex-1 py-2 rounded-lg border text-sm font-medium transition-all duration-150 ${
+                  settings.defaultStyle === key
+                    ? 'border-brand-500 bg-brand-600/20 text-brand-300'
+                    : 'border-gray-700/80 bg-gray-800/40 text-gray-400 hover:border-gray-600 hover:bg-gray-800/60'
+                }`}
+              >
+                {label}
+              </button>
             ))}
-          </select>
+          </div>
         </div>
 
-        {/* size */}
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">
-            默认像素尺寸
-          </label>
-          <select
-            className="input-field"
-            value={settings.defaultSize}
-            onChange={(e) => update('defaultSize', Number(e.target.value) as PixelSize)}
-          >
-            {SIZE_OPTIONS.map((s) => (
-              <option key={s} value={s}>{s} x {s}</option>
-            ))}
-          </select>
+        {/* defaultSize + defaultCount */}
+        <div className="grid grid-cols-2 gap-5">
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              默认尺寸
+            </label>
+            <div className="flex gap-2">
+              {SIZE_OPTIONS.map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => update('defaultSize', s)}
+                  className={`flex-1 py-2 rounded-lg border text-sm font-mono transition-all duration-150 ${
+                    settings.defaultSize === s
+                      ? 'border-brand-500 bg-brand-600/20 text-brand-300'
+                      : 'border-gray-700/80 bg-gray-800/40 text-gray-400 hover:border-gray-600 hover:bg-gray-800/60'
+                  }`}
+                >
+                  {s}×{s}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              默认生成数量
+            </label>
+            <div className="flex gap-2">
+              {COUNT_OPTIONS.map((n) => (
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() => update('defaultCount', n)}
+                  className={`flex-1 py-2 rounded-lg border text-sm font-mono transition-all duration-150 ${
+                    settings.defaultCount === n
+                      ? 'border-brand-500 bg-brand-600/20 text-brand-300'
+                      : 'border-gray-700/80 bg-gray-800/40 text-gray-400 hover:border-gray-600 hover:bg-gray-800/60'
+                  }`}
+                >
+                  {n}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
 
-        {/* count */}
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">
-            默认生成数量
-          </label>
-          <select
-            className="input-field"
-            value={settings.defaultCount}
-            onChange={(e) => update('defaultCount', Number(e.target.value))}
-          >
-            <option value={1}>1</option>
-            <option value={4}>4</option>
-            <option value={8}>8</option>
-          </select>
-        </div>
-
-        {/* targetEngine */}
+        {/* defaultTargetEngine */}
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-2">
             默认目标引擎
           </label>
-          <select
-            className="input-field"
-            value={settings.defaultTargetEngine}
-            onChange={(e) => update('defaultTargetEngine', e.target.value as EngineType)}
-          >
+          <div className="flex gap-2">
             {ENGINE_OPTIONS.map(({ key, label }) => (
-              <option key={key} value={key}>{label}</option>
+              <button
+                key={key}
+                type="button"
+                onClick={() => update('defaultTargetEngine', key)}
+                className={`flex-1 py-2 rounded-lg border text-sm font-medium transition-all duration-150 ${
+                  settings.defaultTargetEngine === key
+                    ? 'border-brand-500 bg-brand-600/20 text-brand-300'
+                    : 'border-gray-700/80 bg-gray-800/40 text-gray-400 hover:border-gray-600 hover:bg-gray-800/60'
+                }`}
+              >
+                {label}
+              </button>
             ))}
-          </select>
+          </div>
         </div>
 
         {/* generationProvider */}
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-2">
-            生成后端
+            默认生成模式
           </label>
           <div className="flex gap-2">
             {PROVIDER_OPTIONS.map(({ key, label, desc }) => (
@@ -168,14 +215,14 @@ export default function ProjectSettings() {
                 key={key}
                 type="button"
                 onClick={() => update('generationProvider', key)}
-                className={`flex-1 py-2 rounded-lg border text-sm transition-all duration-150 ${
+                className={`flex-1 py-2 rounded-lg border text-center transition-all duration-150 ${
                   settings.generationProvider === key
                     ? 'border-brand-500 bg-brand-600/20 text-brand-300'
                     : 'border-gray-700/80 bg-gray-800/40 text-gray-400 hover:border-gray-600 hover:bg-gray-800/60'
                 }`}
               >
-                <div className="font-medium">{label}</div>
-                <div className="text-[10px] opacity-70">{desc}</div>
+                <div className="text-sm font-medium">{label}</div>
+                <div className="text-[10px] opacity-60">{desc}</div>
               </button>
             ))}
           </div>
@@ -202,38 +249,50 @@ export default function ProjectSettings() {
             <div className="text-sm font-medium text-gray-300 group-hover:text-gray-200">
               默认透明背景
             </div>
-            <div className="text-xs text-gray-500">新生成的素材默认启用透明背景</div>
+            <div className="text-xs text-gray-500">输出 RGBA PNG，移除生成背景</div>
           </div>
         </label>
-      </section>
 
-      {/* ---- Actions ---- */}
-      <section className="card space-y-4">
-        <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">
-          操作
-        </h3>
-
-        <div className="flex gap-3">
-          <button className="btn-primary" onClick={handleSave}>
+        {/* ---- actions ---- */}
+        <div className="flex gap-3 pt-2">
+          <button className="btn-primary flex-1 py-2.5" onClick={handleSave}>
             保存配置
           </button>
           <button
-            className="px-4 py-2 rounded-lg border border-gray-700 text-sm text-gray-400 hover:border-gray-600 hover:text-gray-300 transition-colors"
+            className="flex-1 py-2.5 rounded-lg border border-gray-700 bg-gray-800/40 text-gray-400
+                       hover:border-gray-600 hover:bg-gray-800/60 hover:text-gray-300
+                       transition-all duration-150 text-sm font-medium"
             onClick={handleReset}
           >
-            恢复默认
+            重置默认配置
           </button>
         </div>
+      </section>
 
-        {saved && (
-          <p className="text-sm text-green-400">配置已保存</p>
-        )}
-
-        <div className="text-xs text-gray-600 space-y-1 mt-3">
-          <p>配置保存在浏览器的 localStorage 中，不会上传到服务器。</p>
-          <p>AI 生成需要 API Key，请将 API Key 配置在 <code className="bg-gray-800 px-1 rounded">backend/.env</code> 文件中。</p>
-          <p>通义万相模式在 AI 生成失败时会自动回退到 Demo 模式（需开启 ALLOW_DEMO_FALLBACK=true）。</p>
+      {/* ---- feedback ---- */}
+      {saved && (
+        <div className="bg-emerald-900/30 border border-emerald-800 rounded-lg p-4 text-sm text-emerald-300">
+          项目配置已保存，将在素材生成页作为默认参数使用。
         </div>
+      )}
+      {reset && (
+        <div className="bg-blue-900/30 border border-blue-800 rounded-lg p-4 text-sm text-blue-300">
+          已恢复默认项目配置。
+        </div>
+      )}
+
+      {/* ---- footnotes ---- */}
+      <section className="card space-y-3 text-xs text-gray-500">
+        <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">说明</h3>
+        <ul className="space-y-1.5 list-disc list-inside">
+          <li>项目配置只保存默认生成参数，保存在浏览器 localStorage。</li>
+          <li>素材生成页会自动读取这些默认值，但你在生成页仍可临时修改参数。</li>
+          <li>通义万相 API Key 仍然只在 <code className="bg-gray-800 px-1 py-0.5 rounded">backend/.env</code> 中配置，不会保存到前端。</li>
+          <li>
+            生成模式选择 <strong>wanxiang</strong> 时，如果后端未配置 API Key，后端可能回退 Demo 模式或返回错误，
+            取决于后端 <code className="bg-gray-800 px-1 py-0.5 rounded">ALLOW_DEMO_FALLBACK</code> 配置。
+          </li>
+        </ul>
       </section>
     </div>
   );
