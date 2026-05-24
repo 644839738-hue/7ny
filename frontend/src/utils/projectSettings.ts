@@ -16,13 +16,12 @@ const DEFAULTS: ProjectSettings = {
 export function getProjectSettings(): ProjectSettings {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      return { ...DEFAULTS, ...JSON.parse(raw) };
-    }
+    if (!raw) return { ...DEFAULTS };
+    const parsed = JSON.parse(raw);
+    return { ...DEFAULTS, ...parsed };
   } catch {
-    // corrupted data — fall through to defaults
+    return { ...DEFAULTS };
   }
-  return { ...DEFAULTS };
 }
 
 export function saveProjectSettings(settings: ProjectSettings): void {
