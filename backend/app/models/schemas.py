@@ -60,8 +60,11 @@ class HealthResponse(BaseModel):
 class AssetMetadata(BaseModel):
     prompt: str = ""
     generated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    generation_mode: Literal["demo", "ai"] = "demo"
+    generation_mode: str = "demo"
     warning: Optional[str] = None
+    provider: Optional[str] = None
+    model: Optional[str] = None
+    final_prompt: Optional[str] = None
 
 
 class AssetInfo(BaseModel):
@@ -91,6 +94,14 @@ class ErrorResponse(BaseModel):
 # Generate
 # ---------------------------------------------------------------------------
 
+class RuntimeConfigResponse(BaseModel):
+    """Backend runtime generation mode — read-only, for frontend display."""
+    demo_mode: bool
+    image_provider: str
+    ai_enabled: bool
+    provider_label: str
+
+
 class GenerateRequest(BaseModel):
     project_name: str = Field(min_length=1, max_length=100)
     asset_type: AssetType
@@ -100,6 +111,7 @@ class GenerateRequest(BaseModel):
     count: int = Field(default=4, ge=1, le=16)
     target_engine: EngineType = EngineType.UNITY
     transparent_background: bool = True
+    generation_provider: Literal["auto", "demo", "wanxiang"] = "auto"
 
 
 # ---------------------------------------------------------------------------
