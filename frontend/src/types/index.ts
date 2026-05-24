@@ -10,7 +10,7 @@ export type PixelSize = 32 | 64 | 128;
 /** Target game engine for export */
 export type EngineType = 'unity' | 'godot' | 'generic';
 
-/** Generation provider choice */
+/** Generation provider selected by the user */
 export type GenerationProvider = 'auto' | 'demo' | 'wanxiang';
 
 /** Generation request parameters */
@@ -24,37 +24,6 @@ export interface GenerateParams {
   targetEngine: EngineType;
   transparentBackground: boolean;
   generationProvider: GenerationProvider;
-}
-
-/** Project settings persisted to localStorage */
-export interface ProjectSettings {
-  projectName: string;
-  defaultAssetType: AssetType;
-  defaultStyle: ArtStyle;
-  defaultSize: PixelSize;
-  defaultCount: number;
-  defaultTargetEngine: EngineType;
-  transparentBackground: boolean;
-  generationProvider: GenerationProvider;
-}
-
-/** Database info in runtime config */
-export interface DatabaseInfo {
-  provider: 'postgres' | 'sqlite';
-  fallback: boolean;
-  host?: string | null;
-  database?: string | null;
-  path?: string | null;
-}
-
-/** Runtime config from GET /api/runtime-config */
-export interface RuntimeConfig {
-  demo_mode: boolean;
-  image_provider: string;
-  ai_enabled: boolean;
-  provider_label: string;
-  wanxiang_configured: boolean;
-  database: DatabaseInfo;
 }
 
 /** A single generated asset */
@@ -184,6 +153,24 @@ export interface GeneratedAssetRecord {
 export interface AssetListResponse {
   items: GeneratedAssetRecord[];
   total: number;
+/** Backend runtime config */
+export interface RuntimeConfig {
+  demo_mode: boolean;
+  image_provider: string;
+  ai_enabled: boolean;
+  provider_label: string;
+}
+
+/** Project settings stored in localStorage */
+export interface ProjectSettings {
+  projectName: string;
+  defaultAssetType: AssetType;
+  defaultStyle: ArtStyle;
+  defaultSize: PixelSize;
+  defaultCount: 1 | 4 | 8;
+  defaultTargetEngine: EngineType;
+  transparentBackground: boolean;
+  generationProvider: GenerationProvider;
 }
 
 /** Navigation tabs */

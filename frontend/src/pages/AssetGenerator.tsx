@@ -2,7 +2,9 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { AssetType, ArtStyle, PixelSize, EngineType, GenerationProvider, GenerateParams, RuntimeConfig } from '../types';
 import { getProjectSettings } from '../utils/projectSettings';
+import type { AssetType, ArtStyle, EngineType, GenerateParams, GenerationProvider, PixelSize, RuntimeConfig } from '../types';
 import { generateAssets, getRuntimeConfig, getTask } from '../services/api';
+import { getProjectSettings } from '../utils/projectSettings';
 
 // --- option definitions ---------------------------------------------------
 
@@ -37,21 +39,34 @@ const PROVIDER_OPTIONS: { key: GenerationProvider; label: string; desc: string }
 
 // --- component ------------------------------------------------------------
 
+function loadDefaults() {
+  const s = getProjectSettings();
+  return {
+    projectName: s.projectName,
+    assetType: s.defaultAssetType,
+    style: s.defaultStyle,
+    size: s.defaultSize,
+    count: s.defaultCount,
+    targetEngine: s.defaultTargetEngine,
+    generationProvider: s.generationProvider,
+    transparentBg: s.transparentBackground,
+  };
+}
+
 export default function AssetGenerator() {
-  // load defaults from project settings
-  const defs = getProjectSettings();
+  const defs = loadDefaults();
 
   const [projectName, setProjectName] = useState(defs.projectName);
-  const [assetType, setAssetType] = useState<AssetType>(defs.defaultAssetType);
+  const [assetType, setAssetType] = useState<AssetType>(defs.assetType);
   const [prompt, setPrompt] = useState('');
-  const [style, setStyle] = useState<ArtStyle>(defs.defaultStyle);
-  const [size, setSize] = useState<PixelSize>(defs.defaultSize);
-  const [count, setCount] = useState<1 | 4 | 8>(defs.defaultCount as 1 | 4 | 8);
-  const [targetEngine, setTargetEngine] = useState<EngineType>(defs.defaultTargetEngine);
-  const [transparentBg, setTransparentBg] = useState(defs.transparentBackground);
+  const [style, setStyle] = useState<ArtStyle>(defs.style);
+  const [size, setSize] = useState<PixelSize>(defs.size);
+  const [count, setCount] = useState(defs.count);
+  const [targetEngine, setTargetEngine] = useState<EngineType>(defs.targetEngine);
   const [generationProvider, setGenerationProvider] = useState<GenerationProvider>(defs.generationProvider);
+  const [transparentBg, setTransparentBg] = useState(defs.transparentBg);
 
-  // runtime config
+  // runtime config from backend
   const [runtimeConfig, setRuntimeConfig] = useState<RuntimeConfig | null>(null);
 
   // result state
@@ -65,20 +80,22 @@ export default function AssetGenerator() {
   }[]>([]);
 
   useEffect(() => {
-    getRuntimeConfig().then(setRuntimeConfig).catch(() => {});
+    getRuntimeConfig()
+      .then(setRuntimeConfig)
+      .catch(() => setRuntimeConfig(null));
   }, []);
 
-  const handleReloadDefaults = useCallback(() => {
-    const d = getProjectSettings();
+  const handleReloadDefaults = () => {
+    const d = loadDefaults();
     setProjectName(d.projectName);
-    setAssetType(d.defaultAssetType);
-    setStyle(d.defaultStyle);
-    setSize(d.defaultSize);
-    setCount(d.defaultCount as 1 | 4 | 8);
-    setTargetEngine(d.defaultTargetEngine);
-    setTransparentBg(d.transparentBackground);
+    setAssetType(d.assetType);
+    setStyle(d.style);
+    setSize(d.size);
+    setCount(d.count);
+    setTargetEngine(d.targetEngine);
     setGenerationProvider(d.generationProvider);
-  }, []);
+    setTransparentBg(d.transparentBg);
+  };
 
   const handleGenerate = useCallback(async () => {
     setError('');
@@ -127,11 +144,13 @@ export default function AssetGenerator() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold">素材生成</h2>
-          <p className="text-xs text-gray-500 mt-0.5">默认参数来自项目配置，可在本页临时修改。</p>
+          <p className="text-xs text-gray-600 mt-0.5">
+            默认参数来自项目配置，可在本页临时修改。
+          </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <button
-            className="text-xs text-brand-400 hover:text-brand-300 transition-colors"
+            className="text-xs text-gray-500 hover:text-gray-300 transition-colors underline"
             onClick={handleReloadDefaults}
           >
             重新载入项目配置
@@ -140,9 +159,7 @@ export default function AssetGenerator() {
             <span className={`text-xs px-2.5 py-1 rounded-full border ${
               runtimeConfig.demo_mode
                 ? 'bg-amber-900/60 text-amber-300 border-amber-700'
-                : runtimeConfig.wanxiang_configured
-                  ? 'bg-green-900/60 text-green-300 border-green-700'
-                  : 'bg-blue-900/60 text-blue-300 border-blue-700'
+                : 'bg-emerald-900/60 text-emerald-300 border-emerald-700'
             }`}>
               {runtimeConfig.provider_label}{runtimeConfig.wanxiang_configured ? ' (已配置)' : ''}
             </span>
@@ -301,25 +318,32 @@ export default function AssetGenerator() {
         {/* generationProvider */}
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-2">
-            生成后端
+            生成模式
           </label>
           <div className="flex gap-2">
-            {PROVIDER_OPTIONS.map(({ key, label, desc }) => (
+            {([
+              { key: 'auto' as const, label: 'Auto', desc: '跟随后端配置' },
+              { key: 'demo' as const, label: 'Demo', desc: '内置素材' },
+              { key: 'wanxiang' as const, label: '通义万相', desc: 'AI 生成' },
+            ]).map(({ key, label, desc }) => (
               <button
                 key={key}
                 type="button"
                 onClick={() => setGenerationProvider(key)}
-                className={`flex-1 py-2 rounded-lg border text-sm transition-all duration-150 ${
+                className={`flex-1 py-2 rounded-lg border text-center transition-all duration-150 ${
                   generationProvider === key
                     ? 'border-brand-500 bg-brand-600/20 text-brand-300'
                     : 'border-gray-700/80 bg-gray-800/40 text-gray-400 hover:border-gray-600 hover:bg-gray-800/60'
                 }`}
               >
-                <div className="font-medium">{label}</div>
-                <div className="text-[10px] opacity-70">{desc}</div>
+                <div className="text-sm font-medium">{label}</div>
+                <div className="text-[10px] opacity-60">{desc}</div>
               </button>
             ))}
           </div>
+          <p className="text-[10px] text-gray-600 mt-1">
+            选择生成后端。API Key 仅保存在后端，不会泄露到前端。
+          </p>
         </div>
 
         {/* transparentBackground */}
@@ -439,9 +463,9 @@ export default function AssetGenerator() {
         <section className="card text-center py-12">
           <p className="text-gray-600">填写表单并点击「生成素材」，即可调用后端 API 生成素材</p>
           <p className="text-xs text-gray-700 mt-1">
-            {runtimeConfig?.demo_mode
-              ? 'DEMO 模式：使用内置样例素材，即刻返回结果'
-              : '将调用 AI 服务生成素材'}
+            {runtimeConfig
+              ? `当前后端模式：${runtimeConfig.provider_label}`
+              : '加载后端配置中...'}
           </p>
         </section>
       )}

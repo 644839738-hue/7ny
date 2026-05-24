@@ -114,6 +114,9 @@ export function getAsset(assetId: string) {
 /** Delete an asset record by ID. */
 export function deleteAsset(assetId: string) {
   return request<{ ok: boolean }>(`/assets/${assetId}`, { method: 'DELETE' });
+/** Fetch backend runtime generation config. */
+export function getRuntimeConfig() {
+  return request<RuntimeConfig>('/runtime-config');
 }
 
 /** Export assets as a ZIP package for a target engine. */
