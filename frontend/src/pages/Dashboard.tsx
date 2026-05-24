@@ -21,7 +21,7 @@ export default function Dashboard() {
   const [backendStatus, setBackendStatus] = useState<'checking' | 'connected' | 'offline'>('checking');
 
   useEffect(() => {
-    fetch('http://localhost:8000/health')
+    fetch('http://127.0.0.1:8001/health')
       .then((r) => {
         if (r.ok) return r.json();
         throw new Error('Offline');

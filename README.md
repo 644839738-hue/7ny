@@ -243,13 +243,13 @@ cd spriteforge-ai
 ```bash
 cd backend
 pip install -r requirements.txt
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+uvicorn app.main:app --reload --host 127.0.0.1 --port 8001
 ```
 
 后端启动后：
-- API 服务：`http://localhost:8000`
-- Swagger 文档：`http://localhost:8000/docs`
-- 健康检查：`http://localhost:8000/health`
+- API 服务：`http://127.0.0.1:8001`
+- Swagger 文档：`http://127.0.0.1:8001/docs`
+- 健康检查：`http://127.0.0.1:8001/health`
 
 ### 3) 启动前端
 
@@ -261,7 +261,7 @@ npm run dev
 
 前端启动后访问 `http://localhost:5173`。
 
-Vite 开发服务器已配置代理，`/api` 和 `/output` 请求自动转发到 `http://localhost:8000`。
+Vite 开发服务器已配置代理，`/api` 和 `/output` 请求自动转发到 `http://127.0.0.1:8001`。
 
 ### 4) 运行测试
 
@@ -325,7 +325,7 @@ DEMO_MODE=true (默认)
 | `IMAGE_API_KEY` | (空) | 仅非 Demo | 外部图像生成 API 的 Key / Token |
 | `IMAGE_API_BASE_URL` | (空) | 仅非 Demo | 外部图像生成 API 的基础 URL |
 | `SPRITEFORGE_HOST` | `0.0.0.0` | 否 | 后端绑定地址 |
-| `SPRITEFORGE_PORT` | `8000` | 否 | 后端绑定端口 |
+| `SPRITEFORGE_PORT` | `8001` | 否 | 后端绑定端口 |
 
 ### 前端环境变量
 
@@ -422,13 +422,13 @@ $env:SPRITEFORGE_DEMO_MODE = "true"
 
 ### Swagger UI（交互式文档）
 
-后端启动后访问：**`http://localhost:8000/docs`**
+后端启动后访问：**`http://127.0.0.1:8001/docs`**
 
 支持直接在浏览器中测试所有 API 端点。
 
 ### ReDoc（只读文档）
 
-访问：**`http://localhost:8000/redoc`**
+访问：**`http://127.0.0.1:8001/redoc`**
 
 ### 端点总览
 
