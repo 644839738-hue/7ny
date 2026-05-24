@@ -10,6 +10,9 @@ export type PixelSize = 32 | 64 | 128;
 /** Target game engine for export */
 export type EngineType = 'unity' | 'godot' | 'generic';
 
+/** Generation provider selected by the user */
+export type GenerationProvider = 'auto' | 'demo' | 'wanxiang';
+
 /** Generation request parameters */
 export interface GenerateParams {
   projectName: string;
@@ -20,6 +23,7 @@ export interface GenerateParams {
   count: number;
   targetEngine: EngineType;
   transparentBackground: boolean;
+  generationProvider: GenerationProvider;
 }
 
 /** A single generated asset */

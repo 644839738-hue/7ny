@@ -23,6 +23,13 @@ IMAGE_PROVIDER: str = os.getenv("IMAGE_PROVIDER", "demo")
 IMAGE_API_KEY: str = os.getenv("IMAGE_API_KEY", "")
 IMAGE_API_BASE_URL: str = os.getenv("IMAGE_API_BASE_URL", "")
 
+# --- Tongyi Wanxiang / DashScope ---
+DASHSCOPE_API_KEY: str = os.getenv("DASHSCOPE_API_KEY", "")
+WANXIANG_MODEL: str = os.getenv("WANXIANG_MODEL", "wan2.2-t2i-flash")
+WANXIANG_SIZE: str = os.getenv("WANXIANG_SIZE", "1024*1024")
+WANXIANG_N: int = int(os.getenv("WANXIANG_N", "1"))
+ALLOW_DEMO_FALLBACK: bool = os.getenv("ALLOW_DEMO_FALLBACK", "true").lower() != "false"
+
 # --- Server ---
 HOST: str = os.getenv("SPRITEFORGE_HOST", "0.0.0.0")
 PORT: int = int(os.getenv("SPRITEFORGE_PORT", "8000"))
@@ -36,6 +43,9 @@ OUTPUT_DIR: str = os.path.join(BASE_DIR, "..", "output")
 
 # Directory containing sample assets for demo mode
 SAMPLE_ASSETS_DIR: str = os.path.join(BASE_DIR, "..", "..", "examples", "sample-assets")
+
+# Directory for AI-generated images
+GENERATED_DIR: str = os.path.join(OUTPUT_DIR, "generated")
 
 # --- Limits ---
 MAX_GENERATE_COUNT: int = 16

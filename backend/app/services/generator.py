@@ -17,7 +17,6 @@ import uuid
 from datetime import datetime, timezone
 from typing import Optional
 
-from app.config import DEMO_MODE
 from app.models.schemas import (
     GeneratedAsset,
     GenerateRequest,
@@ -42,7 +41,7 @@ def _store_task(task_id: str, **fields) -> None:
         "created_at": datetime.now(timezone.utc),
         "error": None,
         "warning": None,
-        "provider": "demo" if DEMO_MODE else "external",
+        "provider": None,
         **fields,
     }
 

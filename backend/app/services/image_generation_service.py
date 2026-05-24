@@ -11,11 +11,20 @@ changing any orchestration code.
         def generate(req) -> list[GeneratedAsset]
         def provider_name -> str
 
+## Request-level provider selection
+
+When ``req.generation_provider`` is ``"auto"`` (default), the service
+follows the environment configuration (``DEMO_MODE`` / ``IMAGE_PROVIDER``).
+
+When it is ``"demo"`` or ``"wanxiang"``, that provider is used directly,
+regardless of environment config.  This lets the frontend offer per-request
+provider choice without exposing API keys.
+
 ## Fallback behaviour
 
-When ``DEMO_MODE`` is *off* and the external provider raises, the service
-automatically falls back to the demo provider and includes a warning in the
-returned assets' metadata.
+When an external provider raises and ``ALLOW_DEMO_FALLBACK`` is true, the
+service automatically falls back to the demo provider and includes a warning
+in the returned assets' metadata.
 """
 
 from __future__ import annotations
@@ -29,13 +38,21 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
-from app.config import DEMO_MODE, OUTPUT_DIR
+from app.config import ALLOW_DEMO_FALLBACK, DEMO_MODE, IMAGE_PROVIDER, OUTPUT_DIR
 from app.models.schemas import (
     AssetMetadata,
     GeneratedAsset,
     GenerateRequest,
 )
 from app.utils.demo_provider import resolve_sample_path
+
+try:
+    from app.services.wanxiang_image_provider import WanxiangImageProvider
+
+    _WANXIANG_AVAILABLE = True
+except ImportError:  # pragma: no cover — requests not installed
+    WanxiangImageProvider = None  # type: ignore[assignment]
+    _WANXIANG_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
 
@@ -194,13 +211,46 @@ class ExternalImageProvider(ImageGenerationProvider):
 # Provider factory (decides which backend to use)
 # ---------------------------------------------------------------------------
 
-def _create_provider() -> ImageGenerationProvider:
-    """Return the appropriate provider based on ``DEMO_MODE``."""
-    if DEMO_MODE:
-        logger.info("Image generation: using DEMO provider")
+def _create_provider(generation_provider: str = "auto") -> ImageGenerationProvider:
+    """Return the appropriate provider.
+
+    ``generation_provider``
+        ``"auto"`` — follow environment config (DEMO_MODE / IMAGE_PROVIDER)
+        ``"demo"`` — use built-in sample assets
+        ``"wanxiang"`` — use Tongyi Wanxiang (DashScope)
+    """
+    choice = generation_provider.strip().lower()
+
+    # --- explicit demo ---
+    if choice == "demo":
+        logger.info("Image generation: using DEMO provider (request-level)")
         return DemoImageProvider()
 
-    logger.info("Image generation: using EXTERNAL provider")
+    # --- explicit wanxiang ---
+    if choice == "wanxiang":
+        if not _WANXIANG_AVAILABLE:
+            raise RuntimeError(
+                "Wanxiang provider is not available. "
+                "Install the 'requests' package: pip install requests"
+            )
+        logger.info("Image generation: using WANXIANG provider (request-level)")
+        return WanxiangImageProvider()  # type: ignore[no-any-return]
+
+    # --- "auto" — follow environment ---
+    if DEMO_MODE:
+        logger.info("Image generation: using DEMO provider (env)")
+        return DemoImageProvider()
+
+    if IMAGE_PROVIDER == "wanxiang":
+        if not _WANXIANG_AVAILABLE:
+            raise RuntimeError(
+                "IMAGE_PROVIDER=wanxiang but the Wanxiang provider is not available. "
+                "Install the 'requests' package: pip install requests"
+            )
+        logger.info("Image generation: using WANXIANG provider (env)")
+        return WanxiangImageProvider()  # type: ignore[no-any-return]
+
+    logger.info("Image generation: using EXTERNAL provider (env)")
     return ExternalImageProvider()
 
 
@@ -227,10 +277,13 @@ class ImageGenerationResult:
 def generate_assets(req: GenerateRequest) -> ImageGenerationResult:
     """Run generation with automatic demo-fallback on failure.
 
-    *Always* returns assets — if the external provider fails and
-    ``DEMO_MODE`` is off, the demo provider is used as a safety net.
+    Passes ``req.generation_provider`` to the provider factory so the
+    frontend can choose a specific backend per request.
+
+    *Always* returns assets — if a non-demo provider fails and
+    ``ALLOW_DEMO_FALLBACK`` is true, the demo provider is used as a safety net.
     """
-    provider = _create_provider()
+    provider = _create_provider(req.generation_provider)
 
     try:
         assets = provider.generate(req)
@@ -242,15 +295,18 @@ def generate_assets(req: GenerateRequest) -> ImageGenerationResult:
         if provider.provider_name == "demo":
             raise  # demo itself failed — nothing left to fall back to
 
+        if not ALLOW_DEMO_FALLBACK:
+            raise  # user disabled fallback — surface the error
+
         logger.warning(
-            "External generation failed (%s), falling back to demo provider",
+            "Generation failed for provider=%s (%s), falling back to demo",
+            provider.provider_name,
             exc,
         )
         fallback = DemoImageProvider()
         warning_msg = (
-            f"External generation failed: {exc}. "
-            f"Falling back to demo assets. "
-            f"Set IMAGE_API_BASE_URL and IMAGE_API_KEY to use real AI generation."
+            f"{provider.provider_name} generation failed: {exc}. "
+            f"Falling back to demo assets."
         )
         assets = fallback.generate(req)
         return ImageGenerationResult(

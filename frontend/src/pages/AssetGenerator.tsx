@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { AssetType, ArtStyle, EngineType, GenerateParams, PixelSize, RuntimeConfig } from '../types';
+import type { AssetType, ArtStyle, EngineType, GenerateParams, GenerationProvider, PixelSize, RuntimeConfig } from '../types';
 import { generateAssets, getRuntimeConfig, getTask } from '../services/api';
 
 // --- option definitions ---------------------------------------------------
@@ -37,6 +37,7 @@ export default function AssetGenerator() {
   const [size, setSize] = useState<PixelSize>(32);
   const [count, setCount] = useState(4);
   const [targetEngine, setTargetEngine] = useState<EngineType>('unity');
+  const [generationProvider, setGenerationProvider] = useState<GenerationProvider>('auto');
   const [transparentBg, setTransparentBg] = useState(true);
 
   // runtime config from backend
@@ -71,6 +72,7 @@ export default function AssetGenerator() {
       count,
       targetEngine,
       transparentBackground: transparentBg,
+      generationProvider,
     };
 
     try {
@@ -85,7 +87,7 @@ export default function AssetGenerator() {
       setError(e instanceof Error ? e.message : '生成失败，请检查后端是否启动');
     }
     setLoading(false);
-  }, [projectName, assetType, prompt, style, size, count, targetEngine, transparentBg]);
+  }, [projectName, assetType, prompt, style, size, count, targetEngine, transparentBg, generationProvider]);
 
   const handleCopyTaskId = () => {
     navigator.clipboard.writeText(taskId);
@@ -254,6 +256,37 @@ export default function AssetGenerator() {
               </button>
             ))}
           </div>
+        </div>
+
+        {/* generationProvider */}
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-2">
+            生成模式
+          </label>
+          <div className="flex gap-2">
+            {([
+              { key: 'auto' as const, label: 'Auto', desc: '跟随后端配置' },
+              { key: 'demo' as const, label: 'Demo', desc: '内置素材' },
+              { key: 'wanxiang' as const, label: '通义万相', desc: 'AI 生成' },
+            ]).map(({ key, label, desc }) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setGenerationProvider(key)}
+                className={`flex-1 py-2 rounded-lg border text-center transition-all duration-150 ${
+                  generationProvider === key
+                    ? 'border-brand-500 bg-brand-600/20 text-brand-300'
+                    : 'border-gray-700/80 bg-gray-800/40 text-gray-400 hover:border-gray-600 hover:bg-gray-800/60'
+                }`}
+              >
+                <div className="text-sm font-medium">{label}</div>
+                <div className="text-[10px] opacity-60">{desc}</div>
+              </button>
+            ))}
+          </div>
+          <p className="text-[10px] text-gray-600 mt-1">
+            选择生成后端。API Key 仅保存在后端，不会泄露到前端。
+          </p>
         </div>
 
         {/* transparentBackground */}

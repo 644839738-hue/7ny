@@ -26,6 +26,7 @@ export function generateAssets(params: GenerateParams) {
       count: params.count,
       target_engine: params.targetEngine,
       transparent_background: params.transparentBackground,
+      generation_provider: params.generationProvider,
     }),
   });
 }

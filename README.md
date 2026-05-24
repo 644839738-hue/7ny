@@ -297,7 +297,7 @@ DEMO_MODE=true (默认)
             └── ui_32.png, ui_64.png
 ```
 
-> **重要**：生成模式完全由 `backend/.env` 控制，前端仅通过 `/api/runtime-config` 读取并显示后端当前模式，**不具备**切换模式的能力。
+> **请求级 Provider 选择**：前端 AssetGenerator 页面提供「生成模式」选择器（Auto / Demo / 通义万相）。用户可在每次生成时选择使用哪个后端 Provider，无需修改环境变量。API Key 始终保存在后端 `.env`，前端无法访问。
 
 ### 关键设计
 
@@ -327,25 +327,30 @@ DEMO_MODE=true (默认)
 | `IMAGE_API_KEY` | (空) | 仅非 Demo | 外部图像生成 API 的 Key / Token |
 | `IMAGE_API_BASE_URL` | (空) | 仅非 Demo | 外部图像生成 API 的基础 URL |
 | `SPRITEFORGE_HOST` | `0.0.0.0` | 否 | 后端绑定地址 |
+| `IMAGE_PROVIDER` | `demo` | 否 | `demo`=内置素材；`wanxiang`=通义万相 |
 | `SPRITEFORGE_PORT` | `8001` | 否 | 后端绑定端口 |
+| `DASHSCOPE_API_KEY` | (空) | 仅 Wanxiang | DashScope API Key（不暴露给前端） |
+| `WANXIANG_MODEL` | `wan2.2-t2i-flash` | 否 | 通义万相模型 |
+| `WANXIANG_SIZE` | `1024*1024` | 否 | 输出尺寸 |
+| `WANXIANG_N` | `1` | 否 | 每次请求生成张数（1-4） |
+| `ALLOW_DEMO_FALLBACK` | `true` | 否 | AI 失败时是否自动回退 Demo |
 
 ### 前端环境变量
 
-前端不再通过环境变量控制生成模式。页面加载时调用 `GET /api/runtime-config` 获取后端真实的生成模式并显示在 UI 中。保留 `VITE_DEMO_MODE` 仅供本地调试时覆盖显示（可选，一般不设置）。
+前端不再通过环境变量控制生成模式。页面加载时调用 `GET /api/runtime-config` 获取后端环境配置，同时提供「生成模式」选择器让用户按请求选择 **Auto（跟随后端）**、**Demo（内置素材）** 或 **通义万相（AI 生成）**。保留 `VITE_DEMO_MODE` 仅供本地调试时覆盖显示（可选，一般不设置）。
 
 ### 设置方式
 
 ```bash
-# Linux / macOS
-export SPRITEFORGE_DEMO_MODE=true
+# 推荐：复制示例文件并编辑
+cp backend/.env.example backend/.env
+# 编辑 backend/.env，填入 DASHSCOPE_API_KEY 等
 
-# Windows PowerShell
-$env:SPRITEFORGE_DEMO_MODE = "true"
-
-# 或创建 .env 文件（已在 .gitignore 中排除）
+# 或直接设置环境变量
+export DASHSCOPE_API_KEY=your_key_here
 ```
 
-> **安全警告**：切勿将 `IMAGE_API_KEY` 写入代码或提交到版本控制。
+> **安全警告**：切勿将 `DASHSCOPE_API_KEY` 或其他 API Key 写入代码或提交到版本控制。API Key 仅保存在后端 `.env` 文件中，前端通过 `/api/runtime-config` 读取模式状态但**无法获取** API Key 值。
 
 ---
 
@@ -360,6 +365,7 @@ $env:SPRITEFORGE_DEMO_MODE = "true"
 | [Pydantic](https://github.com/pydantic/pydantic) | ^2.7 | 请求/响应数据校验与序列化 | MIT |
 | [Pillow](https://github.com/python-pillow/Pillow) | ^10.0 | 图像处理：透明背景、裁剪、缩放、拼接、RGB 边缘检测 | HPND |
 | [python-multipart](https://github.com/Kludex/python-multipart) | ^0.0.9 | 文件上传解析（FastAPI 依赖） | Apache 2.0 |
+| [requests](https://github.com/psf/requests) | ^2.31 | HTTP 客户端，调用 DashScope API | Apache 2.0 |
 
 ### 后端测试依赖
 
