@@ -56,13 +56,27 @@ app.include_router(assets.router)
 @app.on_event("startup")
 def on_startup() -> None:
     """Ensure runtime directories and database exist."""
+    import logging
     import os
 
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     os.makedirs(GENERATED_DIR, exist_ok=True)
 
     from app.services.asset_repository import init_db
+    from app.services.database import get_active_database_info
+
     init_db()
+
+    db_info = get_active_database_info()
+    logger = logging.getLogger("spriteforge")
+    if db_info["provider"] == "postgres":
+        logger.info("Database: PostgreSQL %s/%s%s",
+                    db_info["host"], db_info["database"],
+                    " (fallback)" if db_info["fallback"] else "")
+    else:
+        logger.info("Database: SQLite at %s%s",
+                    db_info["path"],
+                    " (fallback)" if db_info["fallback"] else "")
 
 
 # Mount output so generated images are reachable via /output/<file>

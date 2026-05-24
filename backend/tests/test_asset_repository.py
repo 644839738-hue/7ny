@@ -1,4 +1,4 @@
-"""Unit tests for the SQLite asset repository."""
+"""Unit tests for the asset repository (dual SQLite / PostgreSQL)."""
 
 import os
 import sqlite3
@@ -9,44 +9,36 @@ import pytest
 
 @pytest.fixture
 def repo():
-    """Create a temporary database and patch the repository module to use it."""
-    import app.services.asset_repository as repo_mod
+    """Create a temporary SQLite database and patch config to use it."""
+    import app.config as cfg
+    from app.services.database import reset_database_provider
 
     tmpdir = tempfile.mkdtemp(prefix="spriteforge_test_")
     db_path = os.path.join(tmpdir, "test.db")
 
-    # Swap in temp paths
-    _orig_db_path = repo_mod.DB_PATH
-    _orig_data_dir = repo_mod.DATA_DIR
-    repo_mod.DB_PATH = db_path
-    repo_mod.DATA_DIR = tmpdir
+    _orig_provider = cfg.DATABASE_PROVIDER
+    _orig_sqlite_path = cfg.SQLITE_DB_PATH
 
-    # Ensure fresh table
+    cfg.DATABASE_PROVIDER = "sqlite"
+    cfg.SQLITE_DB_PATH = db_path
+    reset_database_provider()
+
+    from app.services import asset_repository as repo_mod
+
     os.makedirs(tmpdir, exist_ok=True)
     repo_mod.init_db()
 
     yield repo_mod
 
-    # Clean up
     conn = sqlite3.connect(db_path)
     conn.execute("DELETE FROM generated_assets")
     conn.commit()
     conn.close()
 
-    repo_mod.DB_PATH = _orig_db_path
-    repo_mod.DATA_DIR = _orig_data_dir
+    cfg.DATABASE_PROVIDER = _orig_provider
+    cfg.SQLITE_DB_PATH = _orig_sqlite_path
+    reset_database_provider()
 
-
-# Convenience imports via fixture
-@pytest.fixture
-def svc(repo):
-    """Return commonly-used functions from the patched module."""
-    return repo
-
-
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
 
 def _make_request(repo, **overrides):
     from app.models.schemas import (
@@ -105,7 +97,8 @@ def _make_asset(repo, **overrides):
 
 class TestInitDb:
     def test_creates_db_file(self, repo):
-        assert os.path.isfile(repo.DB_PATH)
+        from app.config import SQLITE_DB_PATH
+        assert os.path.isfile(SQLITE_DB_PATH)
 
     def test_idempotent(self, repo):
         repo.init_db()

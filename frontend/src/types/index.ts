@@ -38,6 +38,15 @@ export interface ProjectSettings {
   generationProvider: GenerationProvider;
 }
 
+/** Database info in runtime config */
+export interface DatabaseInfo {
+  provider: 'postgres' | 'sqlite';
+  fallback: boolean;
+  host?: string | null;
+  database?: string | null;
+  path?: string | null;
+}
+
 /** Runtime config from GET /api/runtime-config */
 export interface RuntimeConfig {
   demo_mode: boolean;
@@ -45,6 +54,7 @@ export interface RuntimeConfig {
   ai_enabled: boolean;
   provider_label: string;
   wanxiang_configured: boolean;
+  database: DatabaseInfo;
 }
 
 /** A single generated asset */

@@ -49,6 +49,16 @@ MAX_GENERATE_COUNT: int = 16
 MAX_PROMPT_LENGTH: int = 500
 MAX_UPLOAD_SIZE_MB: int = 5
 
+# --- Database --------------------------------------------------------------
+DATABASE_PROVIDER: str = os.getenv("DATABASE_PROVIDER", "auto")
+POSTGRES_HOST: str = os.getenv("POSTGRES_HOST", "127.0.0.1")
+POSTGRES_PORT: int = int(os.getenv("POSTGRES_PORT", "5432"))
+POSTGRES_DB: str = os.getenv("POSTGRES_DB", "spriteforge")
+POSTGRES_USER: str = os.getenv("POSTGRES_USER", "spriteforge")
+POSTGRES_PASSWORD: str = os.getenv("POSTGRES_PASSWORD", "")
+POSTGRES_SSLMODE: str = os.getenv("POSTGRES_SSLMODE", "disable")
+SQLITE_DB_PATH: str = os.getenv("SQLITE_DB_PATH", os.path.join(BASE_DIR, "..", "data", "spriteforge.db"))
+
 # --- CORS -----------------------------------------------------------------
 CORS_ORIGINS: list[str] = [
     "http://localhost:5173",

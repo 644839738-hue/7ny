@@ -3,7 +3,8 @@
 from fastapi import APIRouter
 
 from app.config import DEMO_MODE, DASHSCOPE_API_KEY, IMAGE_PROVIDER
-from app.models.schemas import HealthResponse, RuntimeConfigResponse
+from app.models.schemas import DatabaseInfo, HealthResponse, RuntimeConfigResponse
+from app.services.database import get_active_database_info
 
 router = APIRouter(tags=["health"])
 
@@ -37,10 +38,12 @@ def health_check() -> HealthResponse:
 @router.get("/api/runtime-config", response_model=RuntimeConfigResponse)
 def runtime_config() -> RuntimeConfigResponse:
     """Return the actual backend provider status for the frontend."""
+    db_info = get_active_database_info()
     return RuntimeConfigResponse(
         demo_mode=DEMO_MODE,
         image_provider=IMAGE_PROVIDER,
         ai_enabled=bool(DASHSCOPE_API_KEY),
         provider_label=_resolve_provider_label(),
         wanxiang_configured=_wanxiang_configured(),
+        database=DatabaseInfo(**db_info),
     )

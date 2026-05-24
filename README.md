@@ -394,6 +394,38 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8001
 
 > **注意**：删除 API 仅删除数据库记录，**不删除图片文件**。如需释放磁盘空间，请手动清理 `backend/output/` 和 `backend/data/` 目录。
 
+### 数据库后端
+
+后端支持 PostgreSQL 和 SQLite 两种数据库，通过 `DATABASE_PROVIDER` 环境变量控制：
+
+| 值 | 行为 |
+|---|---|
+| `auto`（默认） | 优先 PostgreSQL，不可用时自动 fallback 到 SQLite |
+| `postgres` | 强制 PostgreSQL，连接失败则启动报错 |
+| `sqlite` | 强制 SQLite |
+
+**启动 PostgreSQL（可选）：**
+
+```bash
+docker compose up -d postgres
+```
+
+**关闭 PostgreSQL：**
+
+```bash
+docker compose down
+```
+
+**查看当前使用的数据库：**
+
+```bash
+curl http://localhost:8001/api/runtime-config | jq .database
+```
+
+SQLite 数据库文件路径：`backend/data/spriteforge.db`。数据库文件不提交到 Git（`.gitignore` 中已排除 `backend/data/*.db`、`backend/data/*.sqlite`、`backend/data/*.sqlite3`）。
+
+> **提示**：如果你没有 PostgreSQL，无需任何配置即可运行 — 系统会自动使用 SQLite，功能完全一致。
+
 ---
 
 ## 11. 环境变量说明
@@ -410,6 +442,14 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8001
 | `WANXIANG_SIZE` | `1024*1024` | 否 | 生成图像尺寸 |
 | `WANXIANG_N` | `1` | 否 | 单次 API 调用生成数量 |
 | `ALLOW_DEMO_FALLBACK` | `true` | 否 | AI 生成失败时自动回退 Demo |
+| `DATABASE_PROVIDER` | `auto` | 否 | 数据库选择：`auto` / `postgres` / `sqlite` |
+| `POSTGRES_HOST` | `127.0.0.1` | 仅 PostgreSQL | PostgreSQL 主机地址 |
+| `POSTGRES_PORT` | `5432` | 仅 PostgreSQL | PostgreSQL 端口 |
+| `POSTGRES_DB` | `spriteforge` | 仅 PostgreSQL | PostgreSQL 数据库名 |
+| `POSTGRES_USER` | `spriteforge` | 仅 PostgreSQL | PostgreSQL 用户名 |
+| `POSTGRES_PASSWORD` | (空) | 仅 PostgreSQL | PostgreSQL 密码 |
+| `POSTGRES_SSLMODE` | `disable` | 仅 PostgreSQL | PostgreSQL SSL 模式 |
+| `SQLITE_DB_PATH` | `backend/data/spriteforge.db` | 否 | SQLite 数据库文件路径 |
 | `IMAGE_API_KEY` | (空) | 仅非 Demo | 外部图像生成 API 的 Key / Token |
 | `IMAGE_API_BASE_URL` | (空) | 仅非 Demo | 外部图像生成 API 的基础 URL |
 | `SPRITEFORGE_HOST` | `0.0.0.0` | 否 | 后端绑定地址 |

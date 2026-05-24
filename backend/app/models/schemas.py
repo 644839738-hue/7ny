@@ -57,12 +57,21 @@ class HealthResponse(BaseModel):
 # Runtime config (frontend-facing provider status)
 # ---------------------------------------------------------------------------
 
+class DatabaseInfo(BaseModel):
+    provider: str = "sqlite"
+    fallback: bool = False
+    host: Optional[str] = None
+    database: Optional[str] = None
+    path: Optional[str] = None
+
+
 class RuntimeConfigResponse(BaseModel):
     demo_mode: bool
     image_provider: str
     ai_enabled: bool
     provider_label: str
     wanxiang_configured: bool
+    database: DatabaseInfo = Field(default_factory=DatabaseInfo)
 
 
 # ---------------------------------------------------------------------------

@@ -6,21 +6,21 @@ import tempfile
 
 import pytest
 
-# ---------------------------------------------------------------------------
-# Set up isolated database BEFORE importing the app
-# ---------------------------------------------------------------------------
 _TMPDIR = tempfile.mkdtemp(prefix="spriteforge_api_test_")
 _DB_PATH = os.path.join(_TMPDIR, "test.db")
 
-import app.services.asset_repository as repo_mod  # noqa: E402
+import app.config as cfg  # noqa: E402
+from app.services.database import reset_database_provider  # noqa: E402
 
-_orig_db_path = repo_mod.DB_PATH
-_orig_data_dir = repo_mod.DATA_DIR
-repo_mod.DB_PATH = _DB_PATH
-repo_mod.DATA_DIR = _TMPDIR
-repo_mod.init_db()
+_orig_provider = cfg.DATABASE_PROVIDER
+_orig_sqlite_path = cfg.SQLITE_DB_PATH
+cfg.DATABASE_PROVIDER = "sqlite"
+cfg.SQLITE_DB_PATH = _DB_PATH
+reset_database_provider()
 
-# Now safe to import the app (routers will use the patched module)
+from app.services.asset_repository import init_db  # noqa: E402
+init_db()
+
 from app.main import app  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 
