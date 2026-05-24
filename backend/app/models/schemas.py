@@ -94,6 +94,14 @@ class ErrorResponse(BaseModel):
 # Generate
 # ---------------------------------------------------------------------------
 
+class RuntimeConfigResponse(BaseModel):
+    """Backend runtime generation mode — read-only, for frontend display."""
+    demo_mode: bool
+    image_provider: str
+    ai_enabled: bool
+    provider_label: str
+
+
 class GenerateRequest(BaseModel):
     project_name: str = Field(min_length=1, max_length=100)
     asset_type: AssetType
@@ -103,6 +111,7 @@ class GenerateRequest(BaseModel):
     count: int = Field(default=4, ge=1, le=16)
     target_engine: EngineType = EngineType.UNITY
     transparent_background: bool = True
+    generation_provider: Literal["auto", "demo", "wanxiang"] = "auto"
 
 
 # ---------------------------------------------------------------------------
