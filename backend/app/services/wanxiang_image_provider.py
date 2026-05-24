@@ -27,7 +27,7 @@ from app.models.schemas import (
     GeneratedAsset,
     GenerateRequest,
 )
-from app.services.image_generation_service import ImageGenerationProvider
+from app.services.provider_base import ImageGenerationProvider
 
 logger = logging.getLogger(__name__)
 

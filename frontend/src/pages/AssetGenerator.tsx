@@ -56,9 +56,11 @@ export default function AssetGenerator() {
   // result state
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [warning, setWarning] = useState('');
   const [taskId, setTaskId] = useState('');
   const [generatedAssets, setGeneratedAssets] = useState<{
     id: string; name: string; type: string; width: number; height: number; image_url: string;
+    metadata?: Record<string, unknown>;
   }[]>([]);
 
   useEffect(() => {
@@ -79,6 +81,7 @@ export default function AssetGenerator() {
 
   const handleGenerate = useCallback(async () => {
     setError('');
+    setWarning('');
     setLoading(true);
     setTaskId('');
     setGeneratedAssets([]);
@@ -102,6 +105,9 @@ export default function AssetGenerator() {
       if (resp.status === 'ready') {
         const task = await getTask(resp.task_id);
         setGeneratedAssets(task.assets || []);
+        if (task.warning) {
+          setWarning(task.warning);
+        }
       }
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : '生成失败，请检查后端是否启动');
@@ -133,9 +139,11 @@ export default function AssetGenerator() {
             <span className={`text-xs px-2.5 py-1 rounded-full border ${
               runtimeConfig.demo_mode
                 ? 'bg-amber-900/60 text-amber-300 border-amber-700'
-                : 'bg-green-900/60 text-green-300 border-green-700'
+                : runtimeConfig.wanxiang_configured
+                  ? 'bg-green-900/60 text-green-300 border-green-700'
+                  : 'bg-blue-900/60 text-blue-300 border-blue-700'
             }`}>
-              {runtimeConfig.provider_label}
+              {runtimeConfig.provider_label}{runtimeConfig.wanxiang_configured ? ' (已配置)' : ''}
             </span>
           )}
         </div>
@@ -355,6 +363,14 @@ export default function AssetGenerator() {
         </div>
       )}
 
+      {/* ---- warning (fallback, etc.) ---- */}
+      {warning && (
+        <div className="bg-amber-900/30 border border-amber-800 rounded-lg p-4 text-sm text-amber-300">
+          <span className="font-semibold">Warning: </span>
+          {warning}
+        </div>
+      )}
+
       {/* ---- result ---- */}
       {taskId && (
         <section className="card space-y-4">
@@ -395,6 +411,12 @@ export default function AssetGenerator() {
                       />
                     </div>
                     <span className="text-[10px] text-gray-500 font-mono">{a.type}</span>
+                    {a.metadata?.warning != null && (
+                      <span className="text-[9px] text-amber-400 max-w-[120px] text-center leading-tight"
+                        title={String(a.metadata.warning)}>
+                        {(a.metadata.warning as string).slice(0, 60)}...
+                      </span>
+                    )}
                   </div>
                 ))}
               </div>

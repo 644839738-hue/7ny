@@ -7,6 +7,12 @@ from app.models.schemas import HealthResponse, RuntimeConfigResponse
 
 router = APIRouter(tags=["health"])
 
+try:
+    from app.services.wanxiang_image_provider import WanxiangImageProvider  # noqa: F401
+    _WANXIANG_IMPORT_OK = True
+except ImportError:
+    _WANXIANG_IMPORT_OK = False
+
 
 def _resolve_provider_label() -> str:
     """Return a human-readable provider label for the frontend."""
@@ -15,6 +21,11 @@ def _resolve_provider_label() -> str:
     if IMAGE_PROVIDER == "wanxiang":
         return "通义万相 AI 生成"
     return f"External ({IMAGE_PROVIDER})"
+
+
+def _wanxiang_configured() -> bool:
+    """True when Wanxiang can actually be called (imports work + API key set)."""
+    return _WANXIANG_IMPORT_OK and bool(DASHSCOPE_API_KEY)
 
 
 @router.get("/health", response_model=HealthResponse)
@@ -31,4 +42,5 @@ def runtime_config() -> RuntimeConfigResponse:
         image_provider=IMAGE_PROVIDER,
         ai_enabled=bool(DASHSCOPE_API_KEY),
         provider_label=_resolve_provider_label(),
+        wanxiang_configured=_wanxiang_configured(),
     )

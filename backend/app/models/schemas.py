@@ -62,6 +62,7 @@ class RuntimeConfigResponse(BaseModel):
     image_provider: str
     ai_enabled: bool
     provider_label: str
+    wanxiang_configured: bool
 
 
 # ---------------------------------------------------------------------------

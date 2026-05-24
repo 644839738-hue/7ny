@@ -5,12 +5,6 @@ Provides a pluggable provider interface so the generation backend can be
 swapped between the built-in demo provider and an external AI API without
 changing any orchestration code.
 
-## Provider contract
-
-    class ImageGenerationProvider(ABC):
-        def generate(req) -> list[GeneratedAsset]
-        def provider_name -> str
-
 ## Fallback behaviour
 
 When ``ALLOW_DEMO_FALLBACK`` is true and a non-demo provider raises, the
@@ -24,17 +18,17 @@ import logging
 import os
 import shutil
 import uuid
-from abc import ABC, abstractmethod
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
-from app.config import ALLOW_DEMO_FALLBACK, DEMO_MODE, IMAGE_PROVIDER, OUTPUT_DIR
+from app.config import ALLOW_DEMO_FALLBACK, DASHSCOPE_API_KEY, DEMO_MODE, IMAGE_PROVIDER, OUTPUT_DIR
 from app.models.schemas import (
     AssetMetadata,
     GeneratedAsset,
     GenerateRequest,
 )
+from app.services.provider_base import ImageGenerationProvider, ImageGenerationResult
 from app.utils.demo_provider import resolve_sample_path
 
 logger = logging.getLogger(__name__)
@@ -43,8 +37,9 @@ logger = logging.getLogger(__name__)
 try:
     from app.services.wanxiang_image_provider import WanxiangImageProvider  # noqa: F811
     _WANXIANG_AVAILABLE = True
-except ImportError:
+except ImportError as _exc:
     _WANXIANG_AVAILABLE = False
+    logger.warning("Wanxiang provider import failed: %s", _exc)
 
 
 # ---------------------------------------------------------------------------
@@ -91,23 +86,6 @@ def _build_assets(
             )
         )
     return assets
-
-
-# ---------------------------------------------------------------------------
-# Abstract provider
-# ---------------------------------------------------------------------------
-
-class ImageGenerationProvider(ABC):
-    """Contract that every image-generation backend must fulfil."""
-
-    @abstractmethod
-    def generate(self, req: GenerateRequest) -> list[GeneratedAsset]:
-        ...
-
-    @property
-    @abstractmethod
-    def provider_name(self) -> str:
-        ...
 
 
 # ---------------------------------------------------------------------------
@@ -190,29 +168,28 @@ def _create_provider(generation_provider: str = "auto") -> ImageGenerationProvid
 # Top-level API
 # ---------------------------------------------------------------------------
 
-class ImageGenerationResult:
-    """Container returned by :func:`generate_assets`."""
-
-    def __init__(
-        self,
-        assets: list[GeneratedAsset],
-        provider_used: str,
-        fallback_occurred: bool = False,
-        warning: Optional[str] = None,
-    ) -> None:
-        self.assets = assets
-        self.provider_used = provider_used
-        self.fallback_occurred = fallback_occurred
-        self.warning = warning
-
-
 def generate_assets(req: GenerateRequest) -> ImageGenerationResult:
     """Run generation with automatic demo-fallback on failure."""
 
+    # ------------------------------------------------------------------
+    # Diagnostic log — always emitted so root-cause is visible in server console
+    # ------------------------------------------------------------------
+    logger.info(
+        "generate_assets: generation_provider=%s | DEMO_MODE=%s | IMAGE_PROVIDER=%s | "
+        "has_dashscope_key=%s | ALLOW_DEMO_FALLBACK=%s",
+        req.generation_provider,
+        DEMO_MODE,
+        IMAGE_PROVIDER,
+        bool(DASHSCOPE_API_KEY),
+        ALLOW_DEMO_FALLBACK,
+    )
+
     provider = _create_provider(req.generation_provider)
+    logger.info("generate_assets: selected_provider=%s", provider.provider_name)
 
     try:
         assets = provider.generate(req)
+        logger.info("generate_assets: success — %d assets via %s", len(assets), provider.provider_name)
         return ImageGenerationResult(
             assets=assets,
             provider_used=provider.provider_name,
@@ -222,8 +199,7 @@ def generate_assets(req: GenerateRequest) -> ImageGenerationResult:
             raise
 
         logger.warning(
-            "%s generation failed (%s), falling back to demo provider",
-            provider.provider_name,
+            "Wanxiang generation failed, fallback to demo: %s",
             exc,
         )
 
@@ -232,10 +208,16 @@ def generate_assets(req: GenerateRequest) -> ImageGenerationResult:
 
         fallback = DemoImageProvider()
         warning_msg = (
-            f"{provider.provider_name} generation failed: {exc}. "
-            f"Falling back to demo assets."
+            f"Wanxiang generation failed, fallback to demo: {exc}"
         )
         assets = fallback.generate(req)
+
+        # Stamp fallback metadata onto every returned asset
+        for a in assets:
+            a.metadata.provider = "demo"
+            a.metadata.warning = warning_msg
+
+        logger.warning("generate_assets: fallback — %d demo assets returned", len(assets))
         return ImageGenerationResult(
             assets=assets,
             provider_used="demo",

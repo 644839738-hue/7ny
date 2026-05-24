@@ -44,6 +44,7 @@ export interface RuntimeConfig {
   image_provider: string;
   ai_enabled: boolean;
   provider_label: string;
+  wanxiang_configured: boolean;
 }
 
 /** A single generated asset */
