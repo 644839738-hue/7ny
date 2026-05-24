@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.config import CORS_ORIGINS, DEMO_MODE, OUTPUT_DIR
+from app.config import CORS_ORIGINS, DEMO_MODE, GENERATED_DIR, OUTPUT_DIR
 from app.routers import export, generate, health, process, spritesheet, tile
 
 # ---------------------------------------------------------------------------
@@ -58,6 +58,7 @@ def on_startup() -> None:
     import os
 
     os.makedirs(OUTPUT_DIR, exist_ok=True)
+    os.makedirs(GENERATED_DIR, exist_ok=True)
 
 
 # Mount output so generated images are reachable via /output/<file>

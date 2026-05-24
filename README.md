@@ -246,10 +246,6 @@ pip install -r requirements.txt
 uvicorn app.main:app --reload --host 127.0.0.1 --port 8001
 ```
 
-后端启动后：
-- API 服务：`http://127.0.0.1:8001`
-- Swagger 文档：`http://127.0.0.1:8001/docs`
-- 健康检查：`http://127.0.0.1:8001/health`
 
 ### 3) 启动前端
 
@@ -261,7 +257,7 @@ npm run dev
 
 前端启动后访问 `http://localhost:5173`。
 
-Vite 开发服务器已配置代理，`/api` 和 `/output` 请求自动转发到 `http://127.0.0.1:8001`。
+
 
 ### 4) 运行测试
 
@@ -286,15 +282,21 @@ Demo 模式是 SpriteForge AI 的核心架构特性——**无需任何外部 AI
 ```
 DEMO_MODE=true (默认)
     │
-    ├── 前端: VITE_DEMO_MODE=true
-    │   └── 页面顶部显示 "DEMO" 标记
+    ├── 前端: 调用 GET /api/runtime-config 获取后端模式
+    │   └── 顶部显示后端真实模式标签
     │
-    └── 后端: SPRITEFORGE_DEMO_MODE=true
+    └── 后端: DEMO_MODE=true
         └── DemoImageProvider 使用 examples/sample-assets/ 下内置素材
             ├── character_32.png, character_64.png
             ├── item_32.png, item_64.png
             ├── tile_32.png, tile_64.png
             └── ui_32.png, ui_64.png
+
+DEMO_MODE=false + IMAGE_PROVIDER=wanxiang
+    │
+    └── 后端: WanxiangImageProvider 调用 DashScope API
+        └── 生成图片保存到 backend/output/generated/
+        └── 如果 API 失败且 ALLOW_DEMO_FALLBACK=true，自动回退 Demo
 ```
 
 ### 关键设计
@@ -303,6 +305,9 @@ DEMO_MODE=true (默认)
 - DemoImageProvider 输出数据结构与 ExternalImageProvider 完全一致
 - 上层服务无感知，切换 Provider 无需修改业务代码
 - 外部 AI 调用失败时**自动回退**到 Demo Provider，保证流程不中断
+- 配置方式：复制 `backend/.env.example` 为 `backend/.env`，修改后重启后端
+- `.env` 文件位于 `backend/.env`，已在 `.gitignore` 中排除，不会被提交
+- **API Key 不要提交到版本控制**
 
 ### Demo 模式下的完整流程验证
 
@@ -321,9 +326,15 @@ DEMO_MODE=true (默认)
 
 | 变量 | 默认值 | 必填 | 说明 |
 |------|--------|------|------|
-| `SPRITEFORGE_DEMO_MODE` | `true` | 否 | `true`=使用内置样例素材；`false`=调用外部 AI API |
-| `IMAGE_API_KEY` | (空) | 仅非 Demo | 外部图像生成 API 的 Key / Token |
-| `IMAGE_API_BASE_URL` | (空) | 仅非 Demo | 外部图像生成 API 的基础 URL |
+| `DEMO_MODE` | `true` | 否 | `true`=使用内置样例素材；`false`=调用 IMAGE_PROVIDER |
+| `IMAGE_PROVIDER` | `demo` | 否 | `demo`=内置素材；`wanxiang`=通义万相 AI 生成 |
+| `DASHSCOPE_API_KEY` | (空) | 仅 Wanxiang | DashScope API Key（**不要提交**） |
+| `WANXIANG_MODEL` | `wanx-v1` | 否 | 通义万相模型名称 |
+| `WANXIANG_SIZE` | `1024*1024` | 否 | 输出尺寸 |
+| `WANXIANG_N` | `1` | 否 | 每次请求生成张数（1-4） |
+| `ALLOW_DEMO_FALLBACK` | `true` | 否 | AI 失败时自动回退 Demo |
+| `IMAGE_API_KEY` | (空) | 仅 External | 外部生成 API Key（stub） |
+| `IMAGE_API_BASE_URL` | (空) | 仅 External | 外部生成 API URL（stub） |
 | `SPRITEFORGE_HOST` | `0.0.0.0` | 否 | 后端绑定地址 |
 | `SPRITEFORGE_PORT` | `8001` | 否 | 后端绑定端口 |
 
@@ -336,16 +347,14 @@ DEMO_MODE=true (默认)
 ### 设置方式
 
 ```bash
-# Linux / macOS
-export SPRITEFORGE_DEMO_MODE=true
+# 推荐：复制示例文件并编辑
+cp backend/.env.example backend/.env
+# 编辑 backend/.env，填入 DASHSCOPE_API_KEY 等
 
-# Windows PowerShell
-$env:SPRITEFORGE_DEMO_MODE = "true"
-
-# 或创建 .env 文件（已在 .gitignore 中排除）
+# 修改 .env 后需重启后端
 ```
 
-> **安全警告**：切勿将 `IMAGE_API_KEY` 写入代码或提交到版本控制。
+> **安全警告**：切勿将 `DASHSCOPE_API_KEY` 或其他 API Key 写入代码或提交到版本控制。API Key 仅保存在后端 `backend/.env` 中，前端无法访问。
 
 ---
 
