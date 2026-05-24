@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { GeneratedAssetRecord } from '../types';
 import { deleteAsset, listAssets } from '../services/api';
-import { API_BASE } from '../config/demo';
+import { getAssetUrl } from '../utils/assetUrl';
 
 const TYPE_LABELS: Record<string, string> = {
   character: '角色',
@@ -62,7 +62,7 @@ export default function AssetGallery() {
 
   const handleDownload = useCallback(async (asset: GeneratedAssetRecord) => {
     try {
-      const resp = await fetch(`${API_BASE}${asset.image_url}`);
+      const resp = await fetch(getAssetUrl(asset.image_url));
       if (!resp.ok) throw new Error('Download failed');
       const blob = await resp.blob();
       const url = URL.createObjectURL(blob);
@@ -165,7 +165,7 @@ export default function AssetGallery() {
                            flex items-center justify-center"
               >
                 <img
-                  src={`${API_BASE}${asset.image_url}`}
+                  src={getAssetUrl(asset.image_url)}
                   alt={asset.name}
                   className="max-w-full max-h-full pixelated"
                   style={{ imageRendering: 'pixelated' }}
