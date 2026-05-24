@@ -28,6 +28,12 @@ const ENGINE_OPTIONS: { key: EngineType; label: string }[] = [
   { key: 'generic',  label: '通用' },
 ];
 
+const PROVIDER_OPTIONS: { key: GenerationProvider; label: string; desc: string }[] = [
+  { key: 'auto',    label: 'Auto',   desc: '跟随后端配置' },
+  { key: 'demo',    label: 'Demo',   desc: '内置素材' },
+  { key: 'wanxiang', label: '通义万相', desc: 'AI 生成' },
+];
+
 // --- component ------------------------------------------------------------
 
 function loadDefaults() {
@@ -248,7 +254,7 @@ export default function AssetGenerator() {
                       : 'border-gray-700/80 bg-gray-800/40 text-gray-400 hover:border-gray-600 hover:bg-gray-800/60'
                   }`}
                 >
-                  {s}×{s}
+                  {s}x{s}
                 </button>
               ))}
             </div>

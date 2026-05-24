@@ -49,6 +49,13 @@ except ImportError:  # pragma: no cover — requests not installed
 
 logger = logging.getLogger(__name__)
 
+# Lazy import for Wanxiang (pulls in requests/dashscope)
+try:
+    from app.services.wanxiang_image_provider import WanxiangImageProvider  # noqa: F811
+    _WANXIANG_AVAILABLE = True
+except ImportError:
+    _WANXIANG_AVAILABLE = False
+
 
 # ---------------------------------------------------------------------------
 # Shared helpers
@@ -76,7 +83,7 @@ def _build_assets(
         "generation_mode": generation_mode,
     }
     if warning:
-        meta_kwargs["warning"] = warning  # type: ignore[assignment]
+        meta_kwargs["warning"] = warning
 
     for i in range(req.count):
         asset_id = str(uuid.uuid4())
@@ -110,7 +117,7 @@ class ImageGenerationProvider(ABC):
 
 
 # ---------------------------------------------------------------------------
-# Demo provider (always available)
+# Demo provider
 # ---------------------------------------------------------------------------
 
 class DemoImageProvider(ImageGenerationProvider):
@@ -145,8 +152,7 @@ class ExternalImageProvider(ImageGenerationProvider):
         if not self._base_url or not self._api_key:
             raise RuntimeError(
                 "External image API is not configured. "
-                "Set IMAGE_API_BASE_URL and IMAGE_API_KEY environment variables, "
-                "or enable DEMO_MODE=true."
+                "Set IMAGE_API_BASE_URL and IMAGE_API_KEY environment variables."
             )
         raise NotImplementedError(
             "ExternalImageProvider.generate() is a stub."
@@ -224,7 +230,7 @@ def generate_assets(req: GenerateRequest) -> ImageGenerationResult:
         )
     except Exception as exc:
         if provider.provider_name == "demo":
-            raise  # demo itself failed — nothing left to fall back to
+            raise
 
         if not ALLOW_DEMO_FALLBACK:
             raise  # user disabled fallback — surface the error
@@ -234,6 +240,10 @@ def generate_assets(req: GenerateRequest) -> ImageGenerationResult:
             provider.provider_name,
             exc,
         )
+
+        if not ALLOW_DEMO_FALLBACK:
+            raise
+
         fallback = DemoImageProvider()
         warning_msg = (
             f"{provider.provider_name} generation failed: {exc}. "

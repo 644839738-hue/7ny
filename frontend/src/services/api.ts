@@ -13,6 +13,11 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
   return resp.json();
 }
 
+/** Fetch the backend runtime config (provider status, mode, etc.). */
+export function getRuntimeConfig() {
+  return request<RuntimeConfig>('/runtime-config');
+}
+
 /** Submit a generation request, returns { task_id, status }. */
 export function generateAssets(params: GenerateParams) {
   return request<{ task_id: string; status: string }>('/generate', {
@@ -75,7 +80,7 @@ export function checkTileScore(params: TileScoreRequest) {
   });
 }
 
-/** Build a 3×3 tiling preview for a tile asset. */
+/** Build a 3x3 tiling preview for a tile asset. */
 export function buildTilePreview(params: TilePreviewRequest) {
   return request<TilePreview>('/tile/preview', {
     method: 'POST',

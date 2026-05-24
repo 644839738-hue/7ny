@@ -302,7 +302,7 @@ DEMO_MODE=false + IMAGE_PROVIDER=wanxiang
 ### 关键设计
 
 - 内置样例素材覆盖全部四种类型 + 三种尺寸
-- DemoImageProvider 输出数据结构与 ExternalImageProvider 完全一致
+- DemoImageProvider 输出数据结构与 WanxiangImageProvider 完全一致
 - 上层服务无感知，切换 Provider 无需修改业务代码
 - 外部 AI 调用失败时**自动回退**到 Demo Provider，保证流程不中断
 - 配置方式：复制 `backend/.env.example` 为 `backend/.env`，修改后重启后端
@@ -437,6 +437,7 @@ cp backend/.env.example backend/.env
 | 方法 | 路径 | 说明 |
 |------|------|------|
 | `GET` | `/health` | 健康检查 |
+| `GET` | `/api/runtime-config` | 返回后端实际 Provider 状态与模式 |
 | `POST` | `/api/generate` | 创建素材生成任务 |
 | `GET` | `/api/tasks/{task_id}` | 查询任务状态与结果 |
 | `POST` | `/api/process` | 素材后处理（透明/裁剪/标准化） |

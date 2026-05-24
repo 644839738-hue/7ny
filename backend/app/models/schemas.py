@@ -62,7 +62,18 @@ class RuntimeConfigResponse(BaseModel):
 
 
 # ---------------------------------------------------------------------------
-# Common models (placeholder — will be enriched in later PRs)
+# Runtime config (frontend-facing provider status)
+# ---------------------------------------------------------------------------
+
+class RuntimeConfigResponse(BaseModel):
+    demo_mode: bool
+    image_provider: str
+    ai_enabled: bool
+    provider_label: str
+
+
+# ---------------------------------------------------------------------------
+# Common models
 # ---------------------------------------------------------------------------
 
 class AssetMetadata(BaseModel):
