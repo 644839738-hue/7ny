@@ -367,6 +367,8 @@ DEMO_MODE=false + IMAGE_PROVIDER=wanxiang
 | `GET` | `/api/assets/{id}` | 查询单个素材详情 |
 | `DELETE` | `/api/assets/{id}` | 删除历史记录 |
 
+后端静态素材通过 `/output` 路径暴露（`main.py` 挂载静态文件目录）。前端开发环境由 Vite proxy 将 `/output` 请求转发到后端，生产环境建议由反向代理（如 Nginx）直接处理。前端 `getAssetUrl()` 工具函数统一处理各类图片 URL 格式，避免路径拼接错误。
+
 > **注意**：删除 API 仅删除数据库记录，**不删除图片文件**。如需释放磁盘空间，请手动清理 `backend/output/` 和 `backend/data/` 目录。
 
 ---
