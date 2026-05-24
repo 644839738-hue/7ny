@@ -1,7 +1,8 @@
 """
-Wanxiang (Tongyi Wanxiang) image generation provider.
+Tongyi Wanxiang / DashScope text-to-image provider.
 
-Calls the DashScope text-to-image API for game-asset generation.
+Generates 2D game sprites by calling the DashScope ImageSynthesis API,
+downloading the resulting PNGs, and saving them to ``output/generated/``.
 """
 
 from __future__ import annotations
@@ -11,7 +12,6 @@ import os
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional
 
 import requests
 
@@ -27,156 +27,210 @@ from app.models.schemas import (
     GeneratedAsset,
     GenerateRequest,
 )
-from app.services.image_generation_service import ImageGenerationProvider
 
 logger = logging.getLogger(__name__)
 
+DASHSCOPE_URL = (
+    "https://dashscope.aliyuncs.com/api/v1/services/aigc/"
+    "text2image/image-synthesis"
+)
+
 # ---------------------------------------------------------------------------
-# Prompt-building helpers
+# Prompt builders — craft game-asset-specific prompts per type and style
 # ---------------------------------------------------------------------------
 
+_STYLE_HINTS: dict[str, str] = {
+    "pixel_art": (
+        "pixel art style, crisp clean pixels, limited color palette, "
+        "retro 16-bit game aesthetic, sharp edges, no anti-aliasing"
+    ),
+    "cartoon": (
+        "cartoon style, smooth clean lines, bright vibrant colors, "
+        "cel-shaded, cheerful game art"
+    ),
+    "dark_fantasy": (
+        "dark fantasy style, moody atmospheric lighting, gothic undertones, "
+        "hand-painted texture, dark souls inspired game art"
+    ),
+}
+
 _TYPE_PREFIX: dict[str, str] = {
-    "character": "game character sprite",
-    "item": "game item icon",
-    "tile": "seamless game tile",
-    "ui": "game UI element",
+    "character": "a single 2D game character sprite",
+    "item": "a single 2D game item icon or prop",
+    "tile": "a seamless tileable 2D ground or wall texture tile",
+    "ui": "a single 2D game UI element or HUD component",
 }
 
 _TYPE_HINTS: dict[str, str] = {
-    "character": "full body, front view, centered, game asset",
-    "item": "top-down view, isolated, game asset",
-    "tile": "seamless, top-down, repeatable, game asset",
-    "ui": "clean, minimal, game UI, centered",
-}
-
-_STYLE_HINTS: dict[str, str] = {
-    "pixel_art": "pixel art style, crisp pixels, retro game, 16-bit",
-    "cartoon": "cartoon style, smooth lines, vibrant colors, cel shaded",
-    "dark_fantasy": "dark fantasy style, moody, gothic, dark colors, dramatic lighting",
+    "character": (
+        "full-body character, standing pose, front-facing, "
+        "centered on transparent background, game sprite sheet ready, "
+        "no text no watermark"
+    ),
+    "item": (
+        "single isolated item, centered on transparent background, "
+        "icon view, game inventory ready, no text no watermark"
+    ),
+    "tile": (
+        "seamless tileable pattern, top-down view, flat ground texture, "
+        "edges must match for tiling, no text no watermark"
+    ),
+    "ui": (
+        "game UI element, centered on transparent background, "
+        "clean interface design, no text no watermark"
+    ),
 }
 
 
 def _build_prompt(req: GenerateRequest) -> str:
-    prefix = _TYPE_PREFIX.get(req.asset_type.value, "game asset")
-    type_hint = _TYPE_HINTS.get(req.asset_type.value, "")
-    style_hint = _STYLE_HINTS.get(req.style.value, "")
-    parts = [prefix, req.prompt, type_hint, style_hint]
-    if req.transparent_background:
-        parts.append("transparent background")
-    return ", ".join(p for p in parts if p)
+    """Construct a game-asset-optimised prompt for Wanxiang."""
+    at = req.asset_type.value
+    st = req.style.value
+
+    prefix = _TYPE_PREFIX.get(at, "a 2D game asset")
+    type_hint = _TYPE_HINTS.get(at, "no text no watermark")
+    style_hint = _STYLE_HINTS.get(st, "pixel art style")
+
+    return (
+        f"{prefix}, {req.prompt}, {style_hint}, "
+        f"{req.size.value}x{req.size.value} pixels, {style_hint}"
+    )
 
 
 # ---------------------------------------------------------------------------
-# Provider
+# API call
 # ---------------------------------------------------------------------------
 
-class WanxiangImageProvider(ImageGenerationProvider):
-    """Calls DashScope Tongyi Wanxiang text-to-image API."""
+def _call_dashscope(prompt: str, size: str, n: int) -> list[str]:
+    """Call DashScope text-to-image and return a list of image URLs."""
+    if not DASHSCOPE_API_KEY:
+        raise RuntimeError(
+            "DASHSCOPE_API_KEY is not set. "
+            "Copy backend/.env.example to backend/.env and fill in your API key."
+        )
+
+    headers = {
+        "Authorization": f"Bearer {DASHSCOPE_API_KEY}",
+        "Content-Type": "application/json",
+    }
+
+    payload = {
+        "model": WANXIANG_MODEL,
+        "input": {"prompt": prompt},
+        "parameters": {
+            "size": size,
+            "n": n,
+        },
+    }
+
+    logger.info("Calling DashScope model=%s size=%s n=%d", WANXIANG_MODEL, size, n)
+    resp = requests.post(DASHSCOPE_URL, json=payload, headers=headers, timeout=120)
+    resp.raise_for_status()
+
+    body = resp.json()
+
+    # DashScope returns errors in-band
+    if "code" in body and body.get("code") != "":
+        code = body.get("code", "UNKNOWN")
+        msg = body.get("message", "DashScope returned an error")
+        raise RuntimeError(f"DashScope error [{code}]: {msg}")
+
+    results = body.get("output", {}).get("results", [])
+    if not results:
+        raise RuntimeError("DashScope returned no image results")
+
+    return [r["url"] for r in results if r.get("url")]
+
+
+# ---------------------------------------------------------------------------
+# Download helper
+# ---------------------------------------------------------------------------
+
+def _download_image(url: str, dest_dir: str) -> str:
+    """Download an image from *url* into *dest_dir*, return the saved path."""
+    os.makedirs(dest_dir, exist_ok=True)
+    filename = f"{uuid.uuid4()}.png"
+    dest = os.path.join(dest_dir, filename)
+
+    logger.info("Downloading %s → %s", url, dest)
+    resp = requests.get(url, timeout=60)
+    resp.raise_for_status()
+
+    with open(dest, "wb") as f:
+        f.write(resp.content)
+
+    return dest
+
+
+# ---------------------------------------------------------------------------
+# Provider class
+# ---------------------------------------------------------------------------
+
+class WanxiangImageProvider:
+    """Image generation provider backed by Tongyi Wanxiang (DashScope)."""
 
     @property
     def provider_name(self) -> str:
         return "wanxiang"
 
     def generate(self, req: GenerateRequest) -> list[GeneratedAsset]:
-        if not DASHSCOPE_API_KEY:
-            raise RuntimeError(
-                "DASHSCOPE_API_KEY is not set. "
-                "Set it in backend/.env or switch to demo mode."
-            )
+        """Generate *req.count* game sprites via Wanxiang."""
+        final_prompt = _build_prompt(req)
+        logger.info(
+            "Wanxiang generate: type=%s style=%s count=%d",
+            req.asset_type.value,
+            req.style.value,
+            req.count,
+        )
 
-        prompt = _build_prompt(req)
-        size = WANXIANG_SIZE
-        n = min(req.count, WANXIANG_N)
-
-        image_urls = self._call_dashscope(prompt, size, n)
+        # Wanxiang N param controls how many images per API call.
+        # If the user asks for > WANXIANG_N, call multiple times.
+        n_per_call = max(1, min(WANXIANG_N, 4))
         assets: list[GeneratedAsset] = []
 
-        for i, url in enumerate(image_urls):
-            asset_id = str(uuid.uuid4())
-            local_path = self._download_image(url, asset_id)
-            name = f"{req.asset_type.value}_{req.size.value}x{req.size.value}_{i + 1}"
-            rel_path = os.path.relpath(local_path, os.path.join(GENERATED_DIR, ".."))
-            image_url = f"/output/{rel_path.replace(os.sep, '/')}"
+        remaining = req.count
+        batch = 0
+        while remaining > 0:
+            n = min(remaining, n_per_call)
+            batch += 1
+            try:
+                urls = _call_dashscope(final_prompt, WANXIANG_SIZE, n)
+            except Exception:
+                logger.exception("DashScope call %d failed", batch)
+                raise
 
-            assets.append(
-                GeneratedAsset(
-                    id=asset_id,
-                    name=name,
-                    type=req.asset_type,
-                    width=req.size.value,
-                    height=req.size.value,
-                    image_url=image_url,
-                    metadata=AssetMetadata(
-                        prompt=req.prompt,
-                        generated_at=datetime.now(timezone.utc),
-                        generation_mode="ai",
-                        provider="wanxiang",
-                        model=WANXIANG_MODEL,
-                        final_prompt=prompt,
-                    ),
+            for url in urls:
+                asset_id = str(uuid.uuid4())
+                name = (
+                    f"{req.asset_type.value}_{req.size.value}x{req.size.value}"
+                    f"_{len(assets) + 1}"
                 )
-            )
+
+                saved_path = _download_image(url, GENERATED_DIR)
+                rel_path = os.path.relpath(
+                    saved_path,
+                    os.path.join(os.path.dirname(GENERATED_DIR)),
+                ).replace("\\", "/")
+
+                assets.append(
+                    GeneratedAsset(
+                        id=asset_id,
+                        name=name,
+                        type=req.asset_type,
+                        width=req.size.value,
+                        height=req.size.value,
+                        image_url=f"/output/{rel_path}",
+                        metadata=AssetMetadata(
+                            prompt=req.prompt,
+                            generated_at=datetime.now(timezone.utc),
+                            generation_mode="ai",
+                            provider="wanxiang",
+                            model=WANXIANG_MODEL,
+                            final_prompt=final_prompt,
+                        ),
+                    )
+                )
+
+            remaining -= len(urls)
 
         return assets
-
-    # ------------------------------------------------------------------
-    # Internal helpers
-    # ------------------------------------------------------------------
-
-    def _call_dashscope(self, prompt: str, size: str, n: int) -> list[str]:
-        """Call DashScope API, return list of image URLs."""
-        headers = {
-            "Authorization": f"Bearer {DASHSCOPE_API_KEY}",
-            "Content-Type": "application/json",
-        }
-        payload = {
-            "model": WANXIANG_MODEL,
-            "input": {
-                "prompt": prompt,
-            },
-            "parameters": {
-                "size": size,
-                "n": n,
-            },
-        }
-
-        resp = requests.post(
-            "https://dashscope.aliyuncs.com/api/v1/services/aigc/text2image/image-synthesis",
-            headers=headers,
-            json=payload,
-            timeout=120,
-        )
-        resp.raise_for_status()
-        data = resp.json()
-
-        if "output" not in data:
-            raise RuntimeError(
-                f"DashScope returned unexpected response: {data}"
-            )
-
-        results = data["output"].get("results", [])
-        if not results:
-            raise RuntimeError("DashScope returned no image results")
-
-        return [r["url"] for r in results if "url" in r]
-
-    def _download_image(self, url: str, asset_id: str) -> str:
-        """Download an image URL into GENERATED_DIR, return local path."""
-        dest_dir = Path(GENERATED_DIR)
-        dest_dir.mkdir(parents=True, exist_ok=True)
-
-        resp = requests.get(url, timeout=60)
-        resp.raise_for_status()
-
-        ext = ".png"
-        content_type = resp.headers.get("content-type", "")
-        if "jpeg" in content_type or "jpg" in content_type:
-            ext = ".jpg"
-        elif "webp" in content_type:
-            ext = ".webp"
-
-        filename = f"{asset_id}{ext}"
-        dest_path = dest_dir / filename
-        dest_path.write_bytes(resp.content)
-        logger.info("Downloaded %s → %s", url, dest_path)
-        return str(dest_path)

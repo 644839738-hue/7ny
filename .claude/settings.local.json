@@ -33,8 +33,7 @@
       "Bash(pip install *)",
       "Bash(npm run *)",
       "Bash(git stash *)",
-      "Bash(git cherry-pick *)",
-      "Bash(git branch *)"
+      "Bash(git cherry-pick *)"
     ]
   }
 }

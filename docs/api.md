@@ -4,10 +4,10 @@
 
 | 项目 | 内容 |
 |------|------|
-| Base URL | `http://localhost:8000` |
+| Base URL | `http://127.0.0.1:8001` |
 | Content-Type | `application/json` |
 | 文件上传 | `multipart/form-data` |
-| 文档地址 | `http://localhost:8000/docs` （Swagger UI 自动生成） |
+| 文档地址 | `http://127.0.0.1:8001/docs` （Swagger UI 自动生成） |
 | DEMO 模式 | 默认开启，无需外部 API key |
 
 ## 通用约定

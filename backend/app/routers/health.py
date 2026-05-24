@@ -2,14 +2,17 @@
 
 from fastapi import APIRouter
 
-from app.config import DEMO_MODE, DASHSCOPE_API_KEY, IMAGE_PROVIDER
+from app.config import DEMO_MODE, IMAGE_PROVIDER
 from app.models.schemas import HealthResponse, RuntimeConfigResponse
 
 router = APIRouter(tags=["health"])
 
 
 def _resolve_provider_label() -> str:
-    """Return a human-readable provider label for the frontend."""
+# <<<<<<< feat/dynamic-project-settings
+#     """Return a human-readable label for the current generation backend."""
+# =======
+# >>>>>>> main
     if DEMO_MODE:
         return "Demo 内置素材"
     if IMAGE_PROVIDER == "wanxiang":
@@ -19,16 +22,23 @@ def _resolve_provider_label() -> str:
 
 @router.get("/health", response_model=HealthResponse)
 def health_check() -> HealthResponse:
-    """Return service status and configuration mode."""
     return HealthResponse(demo_mode=DEMO_MODE)
 
 
-@router.get("/api/runtime-config", response_model=RuntimeConfigResponse)
+@router.get(
+    "/api/runtime-config",
+    response_model=RuntimeConfigResponse,
+    summary="Return backend runtime generation mode",
+)
 def runtime_config() -> RuntimeConfigResponse:
-    """Return the actual backend provider status for the frontend."""
+    """Frontend uses this to display the real backend generation mode.
+
+    The generation mode is controlled by ``backend/.env`` — the frontend
+    does **not** have the ability to switch modes.
+    """
     return RuntimeConfigResponse(
         demo_mode=DEMO_MODE,
-        image_provider=IMAGE_PROVIDER,
-        ai_enabled=bool(DASHSCOPE_API_KEY),
+        image_provider="demo" if DEMO_MODE else IMAGE_PROVIDER,
+        ai_enabled=not DEMO_MODE and IMAGE_PROVIDER != "demo",
         provider_label=_resolve_provider_label(),
     )
