@@ -90,6 +90,11 @@ export function buildTilePreview(params: TilePreviewRequest) {
   });
 }
 
+/** Fetch backend runtime generation config. */
+export function getRuntimeConfig() {
+  return request<RuntimeConfig>('/runtime-config');
+}
+
 /** Export assets as a ZIP package for a target engine. */
 export function exportPackage(params: ExportRequest) {
   return request<ExportResult>('/export', {
