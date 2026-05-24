@@ -1,4 +1,4 @@
-import type { ExportRequest, ExportResult, GenerateParams, RuntimeConfig, SpriteSheet, SpriteSheetRequest, TilePreview, TilePreviewRequest, TileScore, TileScoreRequest } from '../types';
+import type { AssetListResponse, ExportRequest, ExportResult, GeneratedAssetRecord, GenerateParams, RuntimeConfig, SpriteSheet, SpriteSheetRequest, TilePreview, TilePreviewRequest, TileScore, TileScoreRequest } from '../types';
 import { API_BASE } from '../config/demo';
 
 async function request<T>(url: string, options?: RequestInit): Promise<T> {
@@ -88,6 +88,32 @@ export function buildTilePreview(params: TilePreviewRequest) {
       asset_id: params.assetId,
     }),
   });
+}
+
+/** List generated asset history records. */
+export function listAssets(params?: {
+  asset_type?: string;
+  project_name?: string;
+  limit?: number;
+  offset?: number;
+}) {
+  const qs = new URLSearchParams();
+  if (params?.asset_type) qs.set('asset_type', params.asset_type);
+  if (params?.project_name) qs.set('project_name', params.project_name);
+  if (params?.limit != null) qs.set('limit', String(params.limit));
+  if (params?.offset != null) qs.set('offset', String(params.offset));
+  const query = qs.toString();
+  return request<AssetListResponse>(`/assets${query ? `?${query}` : ''}`);
+}
+
+/** Get a single asset record by ID. */
+export function getAsset(assetId: string) {
+  return request<GeneratedAssetRecord>(`/assets/${assetId}`);
+}
+
+/** Delete an asset record by ID. */
+export function deleteAsset(assetId: string) {
+  return request<{ ok: boolean }>(`/assets/${assetId}`, { method: 'DELETE' });
 }
 
 /** Export assets as a ZIP package for a target engine. */

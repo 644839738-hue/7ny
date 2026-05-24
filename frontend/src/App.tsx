@@ -6,6 +6,7 @@ import ProjectSettings from './pages/ProjectSettings';
 import AssetGenerator from './pages/AssetGenerator';
 import SpriteSheetTool from './pages/SpriteSheetTool';
 import TilePreview from './pages/TilePreview';
+import AssetGallery from './pages/AssetGallery';
 import ExportPage from './pages/ExportPage';
 
 export default function App() {
@@ -21,6 +22,7 @@ export default function App() {
             <Route path="/generator" element={<AssetGenerator />} />
             <Route path="/spritesheet" element={<SpriteSheetTool />} />
             <Route path="/tile" element={<TilePreview />} />
+            <Route path="/assets" element={<AssetGallery />} />
             <Route path="/export" element={<ExportPage />} />
           </Routes>
         </main>

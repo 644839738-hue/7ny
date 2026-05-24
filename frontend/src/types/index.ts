@@ -153,11 +153,35 @@ export interface ApiError {
   };
 }
 
+/** A generated asset record from GET /api/assets */
+export interface GeneratedAssetRecord {
+  id: string;
+  task_id?: string;
+  project_name: string;
+  asset_type: 'character' | 'item' | 'tile' | 'ui';
+  name: string;
+  prompt: string;
+  style: string;
+  size: number;
+  target_engine: string;
+  provider: string;
+  image_url: string;
+  metadata?: Record<string, unknown>;
+  created_at: string;
+}
+
+/** Paginated response from GET /api/assets */
+export interface AssetListResponse {
+  items: GeneratedAssetRecord[];
+  total: number;
+}
+
 /** Navigation tabs */
 export type NavTab =
   | 'dashboard'
   | 'settings'
   | 'generator'
+  | 'assets'
   | 'spritesheet'
   | 'tile'
   | 'export';
