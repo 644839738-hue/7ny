@@ -140,6 +140,18 @@ export interface RuntimeConfig {
   provider_label: string;
 }
 
+/** Project settings stored in localStorage */
+export interface ProjectSettings {
+  projectName: string;
+  defaultAssetType: AssetType;
+  defaultStyle: ArtStyle;
+  defaultSize: PixelSize;
+  defaultCount: 1 | 4 | 8;
+  defaultTargetEngine: EngineType;
+  transparentBackground: boolean;
+  generationProvider: GenerationProvider;
+}
+
 /** Navigation tabs */
 export type NavTab =
   | 'dashboard'

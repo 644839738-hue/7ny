@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { AssetType, ArtStyle, EngineType, GenerateParams, GenerationProvider, PixelSize, RuntimeConfig } from '../types';
 import { generateAssets, getRuntimeConfig, getTask } from '../services/api';
+import { getProjectSettings } from '../utils/projectSettings';
 
 // --- option definitions ---------------------------------------------------
 
@@ -19,7 +20,7 @@ const STYLE_OPTIONS: { key: ArtStyle; label: string }[] = [
 
 const SIZE_OPTIONS: PixelSize[] = [32, 64, 128];
 
-const COUNT_OPTIONS = [1, 4, 8];
+const COUNT_OPTIONS: (1 | 4 | 8)[] = [1, 4, 8];
 
 const ENGINE_OPTIONS: { key: EngineType; label: string }[] = [
   { key: 'unity',    label: 'Unity' },
@@ -29,16 +30,32 @@ const ENGINE_OPTIONS: { key: EngineType; label: string }[] = [
 
 // --- component ------------------------------------------------------------
 
+function loadDefaults() {
+  const s = getProjectSettings();
+  return {
+    projectName: s.projectName,
+    assetType: s.defaultAssetType,
+    style: s.defaultStyle,
+    size: s.defaultSize,
+    count: s.defaultCount,
+    targetEngine: s.defaultTargetEngine,
+    generationProvider: s.generationProvider,
+    transparentBg: s.transparentBackground,
+  };
+}
+
 export default function AssetGenerator() {
-  const [projectName, setProjectName] = useState('');
-  const [assetType, setAssetType] = useState<AssetType>('character');
+  const defs = loadDefaults();
+
+  const [projectName, setProjectName] = useState(defs.projectName);
+  const [assetType, setAssetType] = useState<AssetType>(defs.assetType);
   const [prompt, setPrompt] = useState('');
-  const [style, setStyle] = useState<ArtStyle>('pixel_art');
-  const [size, setSize] = useState<PixelSize>(32);
-  const [count, setCount] = useState(4);
-  const [targetEngine, setTargetEngine] = useState<EngineType>('unity');
-  const [generationProvider, setGenerationProvider] = useState<GenerationProvider>('auto');
-  const [transparentBg, setTransparentBg] = useState(true);
+  const [style, setStyle] = useState<ArtStyle>(defs.style);
+  const [size, setSize] = useState<PixelSize>(defs.size);
+  const [count, setCount] = useState(defs.count);
+  const [targetEngine, setTargetEngine] = useState<EngineType>(defs.targetEngine);
+  const [generationProvider, setGenerationProvider] = useState<GenerationProvider>(defs.generationProvider);
+  const [transparentBg, setTransparentBg] = useState(defs.transparentBg);
 
   // runtime config from backend
   const [runtimeConfig, setRuntimeConfig] = useState<RuntimeConfig | null>(null);
@@ -56,6 +73,18 @@ export default function AssetGenerator() {
       .then(setRuntimeConfig)
       .catch(() => setRuntimeConfig(null));
   }, []);
+
+  const handleReloadDefaults = () => {
+    const d = loadDefaults();
+    setProjectName(d.projectName);
+    setAssetType(d.assetType);
+    setStyle(d.style);
+    setSize(d.size);
+    setCount(d.count);
+    setTargetEngine(d.targetEngine);
+    setGenerationProvider(d.generationProvider);
+    setTransparentBg(d.transparentBg);
+  };
 
   const handleGenerate = useCallback(async () => {
     setError('');
@@ -98,16 +127,29 @@ export default function AssetGenerator() {
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">素材生成</h2>
-        {runtimeConfig && (
-          <span className={`text-xs px-2.5 py-1 rounded-full border ${
-            runtimeConfig.demo_mode
-              ? 'bg-amber-900/60 text-amber-300 border-amber-700'
-              : 'bg-emerald-900/60 text-emerald-300 border-emerald-700'
-          }`}>
-            {runtimeConfig.provider_label}
-          </span>
-        )}
+        <div>
+          <h2 className="text-2xl font-bold">素材生成</h2>
+          <p className="text-xs text-gray-600 mt-0.5">
+            默认参数来自项目配置，可在本页临时修改。
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            className="text-xs text-gray-500 hover:text-gray-300 transition-colors underline"
+            onClick={handleReloadDefaults}
+          >
+            重新载入项目配置
+          </button>
+          {runtimeConfig && (
+            <span className={`text-xs px-2.5 py-1 rounded-full border ${
+              runtimeConfig.demo_mode
+                ? 'bg-amber-900/60 text-amber-300 border-amber-700'
+                : 'bg-emerald-900/60 text-emerald-300 border-emerald-700'
+            }`}>
+              {runtimeConfig.provider_label}
+            </span>
+          )}
+        </div>
       </div>
 
       {/* ---- form card ---- */}
