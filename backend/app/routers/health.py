@@ -9,7 +9,10 @@ router = APIRouter(tags=["health"])
 
 
 def _resolve_provider_label() -> str:
-    """Return a human-readable label for the current generation backend."""
+# <<<<<<< feat/dynamic-project-settings
+#     """Return a human-readable label for the current generation backend."""
+# =======
+# >>>>>>> main
     if DEMO_MODE:
         return "Demo 内置素材"
     if IMAGE_PROVIDER == "wanxiang":
@@ -19,7 +22,6 @@ def _resolve_provider_label() -> str:
 
 @router.get("/health", response_model=HealthResponse)
 def health_check() -> HealthResponse:
-    """Return service status and configuration mode."""
     return HealthResponse(demo_mode=DEMO_MODE)
 
 
