@@ -8,14 +8,30 @@ dist/
 build/
 *.tsbuildinfo
 
+# Frontend / Vite cache
+.vite/
+frontend/.vite/
+backend/.vite/
+
 # Python
 __pycache__/
 *.py[cod]
+*.pyo
+*.pyd
 *.egg-info/
 *.egg
 venv/
 .venv/
 env/
+
+# Python test / cache
+.pytest_cache/
+pytest_cache/
+.coverage
+coverage/
+.tox/
+.mypy_cache/
+.ruff_cache/
 
 # IDE
 .vscode/
@@ -28,27 +44,38 @@ env/
 .DS_Store
 Thumbs.db
 
-# Environment
+# Environment variables
 .env
 .env.local
 .env.*.local
+backend/.env
+frontend/.env
+*.env
+
+# Claude Code local settings
+.claude/settings.local.json
 
 # Logs
 *.log
 npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
 
-# Generated assets (keep directory structure)
+# Generated assets and uploads
 backend/output/
 backend/uploads/
 
-# SQLite databases
+# Local databases
 backend/data/*.db
 backend/data/*.sqlite
 backend/data/*.sqlite3
 
-# Testing
-coverage/
-.coverage
-.pytest_cache/
-pytest_cache/
-.tox/
+# Docker / local runtime files
+*.pid
+*.seed
+
+# Temporary files
+tmp/
+temp/
+*.tmp
