@@ -247,6 +247,7 @@ uvicorn app.main:app --reload --host 127.0.0.1 --port 8001
 ```
 
 
+
 ### 3) 启动前端
 
 ```bash
@@ -282,9 +283,6 @@ Demo 模式是 SpriteForge AI 的核心架构特性——**无需任何外部 AI
 ```
 DEMO_MODE=true (默认)
     │
-    ├── 前端: 调用 GET /api/runtime-config 获取后端模式
-    │   └── 顶部显示后端真实模式标签
-    │
     └── 后端: DEMO_MODE=true
         └── DemoImageProvider 使用 examples/sample-assets/ 下内置素材
             ├── character_32.png, character_64.png
@@ -298,6 +296,8 @@ DEMO_MODE=false + IMAGE_PROVIDER=wanxiang
         └── 生成图片保存到 backend/output/generated/
         └── 如果 API 失败且 ALLOW_DEMO_FALLBACK=true，自动回退 Demo
 ```
+
+> **请求级 Provider 选择**：前端 AssetGenerator 页面提供「生成模式」选择器（Auto / Demo / 通义万相）。用户可在每次生成时选择使用哪个后端 Provider，无需修改环境变量。API Key 始终保存在后端 `.env`，前端无法访问。
 
 ### 关键设计
 
@@ -318,6 +318,16 @@ DEMO_MODE=false + IMAGE_PROVIDER=wanxiang
 
 全部步骤在 Demo 模式下均可正常执行。
 
+### 动态项目配置
+
+项目配置页面（`/settings`）支持编辑并保存默认生成参数到浏览器 localStorage，包括：
+
+- 项目名称、默认素材类型、默认美术风格、默认像素尺寸
+- 默认生成数量、默认目标引擎、默认透明背景
+- 默认生成模式（Auto / Demo / 通义万相）
+
+素材生成页初始化时自动读取这些默认值填入表单，用户仍可在生成页临时修改参数，不会自动覆盖项目配置。API Key 不会保存到前端，通义万相 Key 只配置在 `backend/.env`。
+
 ---
 
 ## 10. 环境变量说明
@@ -336,13 +346,10 @@ DEMO_MODE=false + IMAGE_PROVIDER=wanxiang
 | `IMAGE_API_KEY` | (空) | 仅 External | 外部生成 API Key（stub） |
 | `IMAGE_API_BASE_URL` | (空) | 仅 External | 外部生成 API URL（stub） |
 | `SPRITEFORGE_HOST` | `0.0.0.0` | 否 | 后端绑定地址 |
-| `SPRITEFORGE_PORT` | `8001` | 否 | 后端绑定端口 |
 
 ### 前端环境变量
 
-| 变量 | 默认值 | 必填 | 说明 |
-|------|--------|------|------|
-| `VITE_DEMO_MODE` | `true` | 否 | `true`=UI 显示 Demo 标记；`false`=隐藏 |
+前端不再通过环境变量控制生成模式。页面加载时调用 `GET /api/runtime-config` 获取后端环境配置，同时提供「生成模式」选择器让用户按请求选择 **Auto（跟随后端）**、**Demo（内置素材）** 或 **通义万相（AI 生成）**。保留 `VITE_DEMO_MODE` 仅供本地调试时覆盖显示（可选，一般不设置）。
 
 ### 设置方式
 
@@ -350,11 +357,6 @@ DEMO_MODE=false + IMAGE_PROVIDER=wanxiang
 # 推荐：复制示例文件并编辑
 cp backend/.env.example backend/.env
 # 编辑 backend/.env，填入 DASHSCOPE_API_KEY 等
-
-# 修改 .env 后需重启后端
-```
-
-> **安全警告**：切勿将 `DASHSCOPE_API_KEY` 或其他 API Key 写入代码或提交到版本控制。API Key 仅保存在后端 `backend/.env` 中，前端无法访问。
 
 ---
 
@@ -369,6 +371,7 @@ cp backend/.env.example backend/.env
 | [Pydantic](https://github.com/pydantic/pydantic) | ^2.7 | 请求/响应数据校验与序列化 | MIT |
 | [Pillow](https://github.com/python-pillow/Pillow) | ^10.0 | 图像处理：透明背景、裁剪、缩放、拼接、RGB 边缘检测 | HPND |
 | [python-multipart](https://github.com/Kludex/python-multipart) | ^0.0.9 | 文件上传解析（FastAPI 依赖） | Apache 2.0 |
+| [requests](https://github.com/psf/requests) | ^2.31 | HTTP 客户端，调用 DashScope API | Apache 2.0 |
 
 ### 后端测试依赖
 
@@ -429,16 +432,6 @@ cp backend/.env.example backend/.env
 
 ## 13. API 文档入口
 
-### Swagger UI（交互式文档）
-
-后端启动后访问：**`http://127.0.0.1:8001/docs`**
-
-支持直接在浏览器中测试所有 API 端点。
-
-### ReDoc（只读文档）
-
-访问：**`http://127.0.0.1:8001/redoc`**
-
 ### 端点总览
 
 | 方法 | 路径 | 说明 |
@@ -452,6 +445,7 @@ cp backend/.env.example backend/.env
 | `POST` | `/api/tile/score` | Tile 边缘一致性评分 |
 | `POST` | `/api/export` | ZIP 导出 |
 | `GET` | `/api/assets` | 列出已生成素材 |
+| `GET` | `/api/runtime-config` | 获取后端生成模式配置（前端读取显示） |
 
 详细请求/响应格式见 [docs/api.md](docs/api.md)。
 

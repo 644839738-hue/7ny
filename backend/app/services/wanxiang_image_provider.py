@@ -11,6 +11,7 @@ import logging
 import os
 import uuid
 from datetime import datetime, timezone
+from pathlib import Path
 
 import requests
 
@@ -21,7 +22,11 @@ from app.config import (
     WANXIANG_N,
     WANXIANG_SIZE,
 )
-from app.models.schemas import AssetMetadata, GeneratedAsset, GenerateRequest
+from app.models.schemas import (
+    AssetMetadata,
+    GeneratedAsset,
+    GenerateRequest,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +36,7 @@ DASHSCOPE_URL = (
 )
 
 # ---------------------------------------------------------------------------
-# Prompt builders
+# Prompt builders — craft game-asset-specific prompts per type and style
 # ---------------------------------------------------------------------------
 
 _STYLE_HINTS: dict[str, str] = {
@@ -78,14 +83,17 @@ _TYPE_HINTS: dict[str, str] = {
 
 
 def _build_prompt(req: GenerateRequest) -> str:
+    """Construct a game-asset-optimised prompt for Wanxiang."""
     at = req.asset_type.value
     st = req.style.value
+
     prefix = _TYPE_PREFIX.get(at, "a 2D game asset")
     type_hint = _TYPE_HINTS.get(at, "no text no watermark")
     style_hint = _STYLE_HINTS.get(st, "pixel art style")
+
     return (
         f"{prefix}, {req.prompt}, {style_hint}, "
-        f"{req.size.value}x{req.size.value} pixels, {type_hint}"
+        f"{req.size.value}x{req.size.value} pixels, {style_hint}"
     )
 
 
@@ -94,7 +102,7 @@ def _build_prompt(req: GenerateRequest) -> str:
 # ---------------------------------------------------------------------------
 
 def _call_dashscope(prompt: str, size: str, n: int) -> list[str]:
-    """Call DashScope text-to-image, return list of image URLs."""
+    """Call DashScope text-to-image and return a list of image URLs."""
     if not DASHSCOPE_API_KEY:
         raise RuntimeError(
             "DASHSCOPE_API_KEY is not set. "
@@ -105,10 +113,14 @@ def _call_dashscope(prompt: str, size: str, n: int) -> list[str]:
         "Authorization": f"Bearer {DASHSCOPE_API_KEY}",
         "Content-Type": "application/json",
     }
+
     payload = {
         "model": WANXIANG_MODEL,
         "input": {"prompt": prompt},
-        "parameters": {"size": size, "n": n},
+        "parameters": {
+            "size": size,
+            "n": n,
+        },
     }
 
     logger.info("Calling DashScope model=%s size=%s n=%d", WANXIANG_MODEL, size, n)
@@ -116,6 +128,8 @@ def _call_dashscope(prompt: str, size: str, n: int) -> list[str]:
     resp.raise_for_status()
 
     body = resp.json()
+
+    # DashScope returns errors in-band
     if "code" in body and body.get("code") != "":
         code = body.get("code", "UNKNOWN")
         msg = body.get("message", "DashScope returned an error")
@@ -133,19 +147,23 @@ def _call_dashscope(prompt: str, size: str, n: int) -> list[str]:
 # ---------------------------------------------------------------------------
 
 def _download_image(url: str, dest_dir: str) -> str:
+    """Download an image from *url* into *dest_dir*, return the saved path."""
     os.makedirs(dest_dir, exist_ok=True)
     filename = f"{uuid.uuid4()}.png"
     dest = os.path.join(dest_dir, filename)
-    logger.info("Downloading %s -> %s", url, dest)
+
+    logger.info("Downloading %s → %s", url, dest)
     resp = requests.get(url, timeout=60)
     resp.raise_for_status()
+
     with open(dest, "wb") as f:
         f.write(resp.content)
+
     return dest
 
 
 # ---------------------------------------------------------------------------
-# Provider
+# Provider class
 # ---------------------------------------------------------------------------
 
 class WanxiangImageProvider:
@@ -156,6 +174,7 @@ class WanxiangImageProvider:
         return "wanxiang"
 
     def generate(self, req: GenerateRequest) -> list[GeneratedAsset]:
+        """Generate *req.count* game sprites via Wanxiang."""
         final_prompt = _build_prompt(req)
         logger.info(
             "Wanxiang generate: type=%s style=%s count=%d",
@@ -164,16 +183,20 @@ class WanxiangImageProvider:
             req.count,
         )
 
+        # Wanxiang N param controls how many images per API call.
+        # If the user asks for > WANXIANG_N, call multiple times.
         n_per_call = max(1, min(WANXIANG_N, 4))
         assets: list[GeneratedAsset] = []
 
         remaining = req.count
+        batch = 0
         while remaining > 0:
             n = min(remaining, n_per_call)
+            batch += 1
             try:
                 urls = _call_dashscope(final_prompt, WANXIANG_SIZE, n)
             except Exception:
-                logger.exception("DashScope call failed")
+                logger.exception("DashScope call %d failed", batch)
                 raise
 
             for url in urls:
@@ -182,6 +205,7 @@ class WanxiangImageProvider:
                     f"{req.asset_type.value}_{req.size.value}x{req.size.value}"
                     f"_{len(assets) + 1}"
                 )
+
                 saved_path = _download_image(url, GENERATED_DIR)
                 rel_path = os.path.relpath(
                     saved_path,
@@ -206,6 +230,7 @@ class WanxiangImageProvider:
                         ),
                     )
                 )
+
             remaining -= len(urls)
 
         return assets

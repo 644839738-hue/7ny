@@ -10,6 +10,9 @@ export type PixelSize = 32 | 64 | 128;
 /** Target game engine for export */
 export type EngineType = 'unity' | 'godot' | 'generic';
 
+/** Generation provider selected by the user */
+export type GenerationProvider = 'auto' | 'demo' | 'wanxiang';
+
 /** Generation request parameters */
 export interface GenerateParams {
   projectName: string;
@@ -20,6 +23,7 @@ export interface GenerateParams {
   count: number;
   targetEngine: EngineType;
   transparentBackground: boolean;
+  generationProvider: GenerationProvider;
 }
 
 /** A single generated asset */
@@ -126,6 +130,26 @@ export interface ApiError {
     code: string;
     message: string;
   };
+}
+
+/** Backend runtime config */
+export interface RuntimeConfig {
+  demo_mode: boolean;
+  image_provider: string;
+  ai_enabled: boolean;
+  provider_label: string;
+}
+
+/** Project settings stored in localStorage */
+export interface ProjectSettings {
+  projectName: string;
+  defaultAssetType: AssetType;
+  defaultStyle: ArtStyle;
+  defaultSize: PixelSize;
+  defaultCount: 1 | 4 | 8;
+  defaultTargetEngine: EngineType;
+  transparentBackground: boolean;
+  generationProvider: GenerationProvider;
 }
 
 /** Navigation tabs */

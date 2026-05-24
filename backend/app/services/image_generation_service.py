@@ -16,11 +16,6 @@ changing any orchestration code.
 When ``req.generation_provider`` is ``"auto"`` (default), the service
 follows the environment configuration (``DEMO_MODE`` / ``IMAGE_PROVIDER``).
 
-When it is ``"demo"`` or ``"wanxiang"``, that provider is used directly.
-
-## Fallback behaviour
-
-When a non-demo provider raises and ``ALLOW_DEMO_FALLBACK`` is true, the
 service automatically falls back to the demo provider and includes a warning
 in the returned assets' metadata.
 """
@@ -167,11 +162,6 @@ def _create_provider(generation_provider: str = "auto") -> ImageGenerationProvid
 
     ``generation_provider``
         ``"auto"`` — follow environment config (DEMO_MODE / IMAGE_PROVIDER)
-        ``"demo"`` — force built-in sample assets
-        ``"wanxiang"`` — force Tongyi Wanxiang (DashScope)
-    """
-    choice = generation_provider.strip().lower()
-
     if choice == "demo":
         logger.info("Image generation: using DEMO provider (request-level)")
         return DemoImageProvider()
@@ -223,11 +213,6 @@ class ImageGenerationResult:
 
 def generate_assets(req: GenerateRequest) -> ImageGenerationResult:
     """Run generation with automatic demo-fallback on failure.
-
-    Passes ``req.generation_provider`` to the provider factory.
-
-    *Always* returns assets — if a non-demo provider fails and
-    ``ALLOW_DEMO_FALLBACK`` is true, the demo provider is used.
     """
     provider = _create_provider(req.generation_provider)
 
@@ -242,7 +227,7 @@ def generate_assets(req: GenerateRequest) -> ImageGenerationResult:
             raise  # demo itself failed — nothing left to fall back to
 
         if not ALLOW_DEMO_FALLBACK:
-            raise
+            raise  # user disabled fallback — surface the error
 
         logger.warning(
             "Generation failed for provider=%s (%s), falling back to demo",
